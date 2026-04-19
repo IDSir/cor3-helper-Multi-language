@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
@@ -26,7 +26,7 @@
             --btn-small-hover: #6272a4;
         }
 
-        /* Theme: Abyss — ultra-dark blue-black */
+        /* Theme: Abyss 鈥?ultra-dark blue-black */
         body.theme-abyss {
             --bg-primary: #0a0e1a;
             --bg-card: #111827;
@@ -49,7 +49,7 @@
             --btn-small-hover: #334155;
         }
 
-        /* Theme: Void — pure black with crimson accents */
+        /* Theme: Void 鈥?pure black with crimson accents */
         body.theme-void {
             --bg-primary: #000000;
             --bg-card: #0d0d0d;
@@ -72,7 +72,7 @@
             --btn-small-hover: #333333;
         }
 
-        /* Theme: Nebula — deep purple-black */
+        /* Theme: Nebula 鈥?deep purple-black */
         body.theme-nebula {
             --bg-primary: #0d0b14;
             --bg-card: #16121f;
@@ -95,7 +95,7 @@
             --btn-small-hover: #2d2640;
         }
 
-        /* Theme: Tactical — military dark green-grey */
+        /* Theme: Tactical 鈥?military dark green-grey */
         body.theme-tactical {
             --bg-primary: #0c0f0a;
             --bg-card: #141a12;
@@ -213,7 +213,7 @@
             opacity: 0.8;
         }
 
-        /* Decisions & Inventory inline sections */
+        /* 决策 & 库存 inline sections */
         .decision-card {
             background: var(--bg-card);
             border-radius: 8px;
@@ -293,7 +293,7 @@
             margin-left: 6px;
         }
 
-        /* Inventory items */
+        /* 库存 items */
         .space-badge {
             background: var(--border);
             border-radius: 6px;
@@ -410,7 +410,7 @@
             background: var(--btn-small-hover) !important;
         }
 
-        /* Auto Decrypt Hacking toggle */
+        /* 自动解密破解 toggle */
         .auto-decrypt-row {
             display: flex;
             align-items: center;
@@ -435,7 +435,7 @@
             font-style: italic;
         }
 
-        /* Daily Ops Timer */
+        /* 每日任务计时器 */
         .daily-timer-box {
             background: var(--bg-card);
             border-radius: 8px;
@@ -697,7 +697,7 @@
             color: var(--bg-primary) !important;
         }
 
-        /* Pinned Timers */
+        /* 已固定计时器 */
         .pinned-timer-row {
             display: flex;
             align-items: center;
@@ -868,34 +868,34 @@
 <!-- Main View -->
 <div id="mainView">
     <div class="header-row">
-        <h3>🛰️ COR3 Helper</h3>
+        <h3>馃洶锔?COR3 助手</h3>
         <div class="header-btns">
-            <button class="header-icon-btn" id="popOutBtn" title="Open in separate window"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>
-            <button class="header-icon-btn" id="sidePanelBtn" title="Open as side panel"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg></button>
-            <button class="header-icon-btn" id="refreshAllBtn" title="Refresh all data">🔄</button>
-            <button class="header-icon-btn" id="themeToggleBtn" title="Change theme">🎨</button>
+            <button class="header-icon-btn" id="popOutBtn" title="在独立窗口中打开"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></button>
+            <button class="header-icon-btn" id="sidePanelBtn" title="作为侧边栏打开"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="15" y1="3" x2="15" y2="21"/></svg></button>
+            <button class="header-icon-btn" id="refreshAllBtn" title="刷新全部数据">馃攧</button>
+            <button class="header-icon-btn" id="themeToggleBtn" title="切换主题">馃帹</button>
         </div>
         <div class="theme-dropdown" id="themeDropdown">
-            <div class="theme-option active" data-theme="default"><span class="theme-swatch" style="background:#1e1e2f;"></span> Default</div>
-            <div class="theme-option" data-theme="abyss"><span class="theme-swatch" style="background:#0a0e1a;"></span> Abyss</div>
-            <div class="theme-option" data-theme="void"><span class="theme-swatch" style="background:#000000;"></span> Void</div>
-            <div class="theme-option" data-theme="nebula"><span class="theme-swatch" style="background:#0d0b14;"></span> Nebula</div>
-            <div class="theme-option" data-theme="tactical"><span class="theme-swatch" style="background:#0c0f0a;"></span> Tactical</div>
+            <div class="theme-option active" data-theme="default"><span class="theme-swatch" style="background:#1e1e2f;"></span> 默认</div>
+            <div class="theme-option" data-theme="abyss"><span class="theme-swatch" style="background:#0a0e1a;"></span> 深渊</div>
+            <div class="theme-option" data-theme="void"><span class="theme-swatch" style="background:#000000;"></span> 虚空</div>
+            <div class="theme-option" data-theme="nebula"><span class="theme-swatch" style="background:#0d0b14;"></span> 星云</div>
+            <div class="theme-option" data-theme="tactical"><span class="theme-swatch" style="background:#0c0f0a;"></span> 战术</div>
         </div>
     </div>
 
-    <!-- Pinned Timers -->
+    <!-- 已固定计时器 -->
     <div class="section" id="pinnedTimersSection" style="display:none;">
-        <div class="section-title">📌 Pinned Timers</div>
+        <div class="section-title">馃搶 已固定计时器</div>
         <div id="pinnedTimersContainer"></div>
     </div>
 
-    <!-- Auto Decrypt Hacking -->
+    <!-- 自动解密破解 -->
     <div class="section">
         <div class="auto-decrypt-row">
-            <span class="decrypt-label">&#x1F513; Auto Decrypt Hacking</span>
+            <span class="decrypt-label">&#x1F513; 自动解密破解</span>
             <div style="display:flex;align-items:center;gap:8px;">
-                <span class="decrypt-status" id="decryptStatus">Off</span>
+                <span class="decrypt-status" id="decryptStatus">关闭</span>
                 <label class="alarm-toggle-switch">
                     <input type="checkbox" id="autoDecryptToggle">
                     <span class="slider-track"></span>
@@ -903,125 +903,125 @@
             </div>
         </div>
     </div>
-    <!-- Daily Ops Timer -->
+    <!-- 每日任务计时器 -->
     <div class="section">
         <div class="market-sub-header">
-            <span class="market-sub-label">📅 Daily Ops Timer</span>
+            <span class="market-sub-label">馃搮 每日任务计时器</span>
             <div style="display:flex;gap:4px;">
-                <button id="pinDailyBtn" class="refresh-btn-small pin-btn" title="Pin Daily Ops Timer">📌</button>
-                <button id="refreshDailyBtn" class="refresh-btn-small" title="Refresh Daily Ops">🔄</button>
+                <button id="pinDailyBtn" class="refresh-btn-small pin-btn" title="固定每日任务计时器">馃搶</button>
+                <button id="refreshDailyBtn" class="refresh-btn-small" title="刷新每日任务">馃攧</button>
             </div>
         </div>
         <div class="last-updated" id="dailyLastUpdated"></div>
-        <div style="font-size:11px;color:var(--accent-orange);margin-bottom:4px;" id="dailyTimerLine">⏳ Next Task: --:--:--</div>
-        <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;">Claimed: <span id="dailyClaimed">--</span> · Streak: <span id="dailyStreak">--</span> · Difficulty: <span id="dailyDifficulty">--</span> · Bonus: <span id="dailyStreakBonus">--</span></div>
+        <div style="font-size:11px;color:var(--accent-orange);margin-bottom:4px;" id="dailyTimerLine">鈴?下次任务： --:--:--</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;">已领取： <span id="dailyClaimed">--</span> 路 连胜： <span id="dailyStreak">--</span> 路 难度： <span id="dailyDifficulty">--</span> 路 奖励： <span id="dailyStreakBonus">--</span></div>
     </div>
 
-    <!-- Markets -->
+    <!-- 市场 -->
     <div class="section">
-        <div class="section-title">🏪 Markets</div>
+        <div class="section-title">馃彧 市场</div>
         <div class="market-sub-header">
-            <span class="market-sub-label" id="coreMarketLabel">🏠 Market-1</span>
+            <span class="market-sub-label" id="coreMarketLabel">馃彔 Market-1</span>
             <div style="display:flex;gap:4px;">
-                <button id="pinCoreMarketBtn" class="refresh-btn-small pin-btn" title="Pin Market Timer">📌</button>
-                <button id="refreshMarketBtn" class="refresh-btn-small" title="Refresh Market">🔄</button>
+                <button id="pinCoreMarketBtn" class="refresh-btn-small pin-btn" title="固定市场计时器">馃搶</button>
+                <button id="refreshMarketBtn" class="refresh-btn-small" title="刷新市场">馃攧</button>
             </div>
         </div>
         <div class="last-updated" id="coreMarketLastUpdated"></div>
-        <div id="marketContainer"><div class="no-decisions">No market data cached yet.</div></div>
+        <div id="marketContainer"><div class="no-decisions">暂未缓存市场数据。</div></div>
         <div style="border-top:1px solid var(--border);margin:10px 0;"></div>
         <div class="market-sub-header">
-            <span class="market-sub-label" id="darkMarketLabel">🌑 Market-2</span>
+            <span class="market-sub-label" id="darkMarketLabel">馃寫 Market-2</span>
             <div style="display:flex;gap:4px;">
-                <button id="pinDarkMarketBtn" class="refresh-btn-small pin-btn" title="Pin Market Timer">📌</button>
-                <button id="refreshDarkMarketBtn" class="refresh-btn-small" title="Refresh Market">🔄</button>
+                <button id="pinDarkMarketBtn" class="refresh-btn-small pin-btn" title="固定市场计时器">馃搶</button>
+                <button id="refreshDarkMarketBtn" class="refresh-btn-small" title="刷新市场">馃攧</button>
             </div>
         </div>
         <div class="last-updated" id="darkMarketLastUpdated"></div>
-        <div id="darkMarketContainer"><div class="no-decisions">No market data cached yet.</div></div>
+        <div id="darkMarketContainer"><div class="no-decisions">暂未缓存市场数据。</div></div>
     </div>
 
-    <!-- Expeditions -->
+    <!-- 远征 -->
     <div class="section">
         <div class="market-sub-header">
-            <span class="market-sub-label">🎯 Expeditions</span>
+            <span class="market-sub-label">馃幆 远征</span>
             <div style="display:flex;gap:4px;">
-                <button id="refreshExpeditionsBtn" class="refresh-btn-small" title="Refresh Expeditions">🔄</button>
+                <button id="refreshExpeditionsBtn" class="refresh-btn-small" title="刷新远征">馃攧</button>
             </div>
         </div>
         <div class="last-updated" id="expeditionLastUpdated"></div>
-        <div id="expeditionInfoContainer"><div class="no-decisions">No expedition data yet.</div></div>
+        <div id="expeditionInfoContainer"><div class="no-decisions">暂无远征数据。</div></div>
 
-        <!-- Decisions (expandable) -->
+        <!-- 决策 (expandable) -->
         <div class="expandable-header" id="decisionsSectionToggle">
-            <span class="expand-arrow">▶</span>
-            <span class="expand-label">📋 Decisions</span>
+            <span class="expand-arrow">鈻?/span>
+            <span class="expand-label">馃搵 决策</span>
         </div>
         <div class="expandable-body" id="decisionsSectionBody">
             <div id="decisionsContainer"></div>
         </div>
     </div>
 
-    <!-- Inventory (expandable) -->
+    <!-- 库存 (expandable) -->
     <div class="section">
         <div class="expandable-header" id="inventorySectionToggle">
-            <span class="expand-arrow">▶</span>
-            <span class="expand-label">🎒 Inventory <span id="spaceInfo" class="space-badge" style="font-size:9px;padding:2px 6px;">-- / --</span> <span id="totalValue" style="font-size:10px;color:var(--accent-green);font-weight:normal;"></span></span>
+            <span class="expand-arrow">鈻?/span>
+            <span class="expand-label">馃帓 库存 <span id="spaceInfo" class="space-badge" style="font-size:9px;padding:2px 6px;">-- / --</span> <span id="totalValue" style="font-size:10px;color:var(--accent-green);font-weight:normal;"></span></span>
         </div>
         <div class="expandable-body" id="inventorySectionBody">
-            <div id="inventoryContainer"><div class="no-decisions">Click to expand and load inventory...</div></div>
+            <div id="inventoryContainer"><div class="no-decisions">点击展开并加载库存...</div></div>
         </div>
     </div>
 
-    <!-- Alarms Section -->
+    <!-- 闹钟 Section -->
     <div class="section">
         <div class="market-sub-header">
-            <span class="market-sub-label">⏰ Alarms</span>
+            <span class="market-sub-label">鈴?闹钟</span>
             <div style="display:flex;gap:4px;">
-                <button id="stopAllAlarmsBtn" class="refresh-btn-small" title="Stop all sounding alarms" style="display:none;">🛑</button>
-                <button id="addAlarmBtn" class="refresh-btn-small" title="Add new alarm">➕</button>
+                <button id="stopAllAlarmsBtn" class="refresh-btn-small" title="停止所有正在响铃的闹钟" style="display:none;">馃洃</button>
+                <button id="addAlarmBtn" class="refresh-btn-small" title="添加新闹钟">鉃?/button>
             </div>
         </div>
         <div id="alarmList"></div>
         <!-- Add/Edit alarm form (hidden by default) -->
         <div id="alarmForm" class="alarm-form" style="display:none;">
-            <div class="alarm-form-title" id="alarmFormTitle">New Alarm</div>
+            <div class="alarm-form-title" id="alarmFormTitle">新建闹钟</div>
             <div class="alarm-row">
-                <span>Watch:</span>
+                <span>监控：</span>
                 <select id="alarmTimerSelect">
-                    <option value="daily">Daily Ops Timer</option>
-                    <option value="home_jobs">Market-1 Jobs Reset</option>
-                    <option value="dark_jobs">Market-2 Jobs Reset</option>
-                    <optgroup label="Expeditions" id="alarmExpeditionGroup"></optgroup>
+                    <option value="daily">每日任务计时器</option>
+                    <option value="home_jobs">Market-1 任务重置</option>
+                    <option value="dark_jobs">Market-2 任务重置</option>
+                    <optgroup label="远征" id="alarmExpeditionGroup"></optgroup>
                 </select>
             </div>
             <div class="threshold-row">
-                <span class="th-label">Alert when remaining:</span>
+                <span class="th-label">剩余时间达到以下值时提醒：</span>
                 <input type="number" id="alarmMinutes" min="0" max="59" value="1"> <span class="th-label">m</span>
                 <input type="number" id="alarmSeconds" min="0" max="59" value="0"> <span class="th-label">s</span>
             </div>
             <div class="switch-row">
-                <span>Continuous (beep every 2s)</span>
-                <label><input type="checkbox" id="alarmContinuous"> On</label>
+                <span>连续响铃（每 2 秒一次）</span>
+                <label><input type="checkbox" id="alarmContinuous"> 开启</label>
             </div>
             <div class="slider-container">
-                <span>Volume:</span>
+                <span>音量：</span>
                 <input type="range" id="alarmVolume" min="0" max="100" value="50">
                 <span id="alarmVolumeLabel">50%</span>
             </div>
             <div style="display:flex;gap:6px;margin-top:4px;">
-                <button id="saveAlarmBtn">💾 Save</button>
-                <button id="cancelAlarmBtn" class="danger">Cancel</button>
-                <button id="testAlarmBtn" style="margin-left:auto;">🔊 Test</button>
+                <button id="saveAlarmBtn">馃捑 保存</button>
+                <button id="cancelAlarmBtn" class="danger">取消</button>
+                <button id="testAlarmBtn" style="margin-left:auto;">馃攰 测试</button>
             </div>
         </div>
     </div>
 
-    <div id="status">Status: Ready</div>
+    <div id="status">状态：就绪</div>
 
-    <!-- Check for Updates -->
+    <!-- 检查更新 -->
     <div style="margin-top:8px;text-align:center;">
-        <button id="checkUpdateBtn" style="width:auto;padding:6px 14px;font-size:11px;">&#x1F504; Check for Updates</button>
+        <button id="checkUpdateBtn" style="width:auto;padding:6px 14px;font-size:11px;">&#x1F504; 检查更新</button>
         <div id="updateResult" style="font-size:10px;color:var(--text-dim);margin-top:4px;"></div>
     </div>
 
@@ -1031,3 +1031,4 @@
 <script src="popup.js"></script>
 </body>
 </html>
+
