@@ -1,4 +1,4 @@
-// ws-interceptor.js
+﻿// ws-interceptor.js
 // Injected into the page context to intercept WebSocket messages.
 // Communicates back to the content script via window.postMessage.
 
@@ -73,7 +73,7 @@
                             expeditionId: expedition.id,
                             mercenaryCallsign: expedition.mercenary
                                 ? expedition.mercenary.callsign
-                                : 'Unknown',
+                                : '未知',
                             locationName: expedition.locationName || '',
                             zoneName: expedition.zoneName || '',
                             messageId: msg.id,
@@ -117,3 +117,4 @@
         }
     });
 })();
+

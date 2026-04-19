@@ -1,4 +1,4 @@
-// content.js
+﻿// content.js
 
 // --- Listen for decision data relayed from content-early.js (MAIN world) ---
 window.addEventListener('message', (event) => {
@@ -313,7 +313,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         chrome.storage.local.get('bearerToken', (result) => {
             const token = result.bearerToken;
             if (!token) {
-                sendResponse({ error: 'no token' });
+                sendResponse({ error: '缺少令牌' });
                 return;
             }
             fetch('https://svc-corie.cor3.gg/api/user-daily-claim', {
@@ -326,8 +326,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 }
                 sendResponse({ data: data });
             })
-            .catch(() => sendResponse({ error: 'fetch failed' }));
+            .catch(() => sendResponse({ error: '请求失败' }));
         });
         return true; // keep channel open for async sendResponse
     }
 });
+

@@ -1,5 +1,5 @@
-// content-early.js
-// Runs in MAIN world at document_start — before the page creates any WebSocket.
+﻿// content-early.js
+// Runs in MAIN world at document_start 鈥?before the page creates any WebSocket.
 // Hooks WebSocket to intercept cor3/corie messages and relays decisions via postMessage.
 
 (function () {
@@ -63,7 +63,7 @@
             const url = args[0] || '';
 
             if (url.includes('cor3') || url.includes('corie')) {
-                console.log('[COR3 Helper] Tracking WebSocket:', url);
+                console.log('[COR3 Helper] 正在跟踪 WebSocket：', url);
                 trackedSockets.push(ws);
 
                 ws.addEventListener('message', function (event) {
@@ -76,7 +76,7 @@
 
                 // Auto-fetch all data when WS connects (page load/reload)
                 ws.addEventListener('open', function () {
-                    console.log('[COR3 Helper] WS connected — scheduling initial data fetch');
+                    console.log('[COR3 Helper] WS 已连接 鈥?安排初始数据抓取');
                     // Wait for connection to stabilize, then fetch all data
                     setTimeout(function () {
                         window.__cor3InitialFetch && window.__cor3InitialFetch();
@@ -133,10 +133,10 @@
             }, '*');
         }
 
-        // Intercept market responses — only relay actual market data (not "connected" acks)
+        // Intercept market responses 鈥?only relay actual market data (not "connected" acks)
         if (eventName === 'market' && payload && payload.data) {
             var mkt = payload.data.market;
-            // Skip connection acknowledgments (action: "connected") — they don't contain real market data
+            // Skip connection acknowledgments (action: "connected") 鈥?they don't contain real market data
             if (mkt && mkt.marketName) {
                 if (mkt.id === '019d3ea4-85bd-7389-904d-908ba9194aa0') {
                     window.postMessage({
@@ -185,7 +185,7 @@
                             expeditionId: expedition.id,
                             mercenaryCallsign: expedition.mercenary
                                 ? expedition.mercenary.callsign
-                                : 'Unknown',
+                                : '未知',
                             locationName: expedition.locationName || '',
                             zoneName: expedition.zoneName || '',
                             messageId: msg.id,
@@ -214,7 +214,7 @@
     // We track whether data already arrived to avoid sending a duplicate get.active.
     window.__cor3RequestExpeditions = function () {
         var gotData = false;
-        // Listen for the response — if it arrives from room join alone, skip manual send
+        // Listen for the response 鈥?if it arrives from room join alone, skip manual send
         var onExpData = function (evt) {
             if (evt.data && evt.data.type === 'COR3_WS_EXPEDITIONS') {
                 gotData = true;
@@ -224,22 +224,22 @@
         window.addEventListener('message', onExpData);
 
         enterRooms(['expeditions']).then(function () {
-            // Wait a bit — if data already arrived from room join, skip the manual send
+            // Wait a bit 鈥?if data already arrived from room join, skip the manual send
             setTimeout(function () {
                 window.removeEventListener('message', onExpData);
                 if (!gotData) {
                     var msg = '42["event",{"event":{"name":"expeditions","action":"get.active"}}]';
                     wsSend(msg);
-                    console.log('[COR3 Helper] Sent expeditions get.active (no auto-response from room join)');
+                    console.log('[COR3 Helper] 已发送 expeditions get.active（房间加入未自动返回数据）');
                 } else {
-                    console.log('[COR3 Helper] Expedition data arrived from room join — skipped manual get.active');
+                    console.log('[COR3 Helper] 远征数据已通过房间加入返回 鈥?已跳过手动 get.active');
                 }
             }, 2000);
         });
         return true;
     };
 
-    // Helper: get a random human-like delay (400–900ms)
+    // Helper: get a random human-like delay (400鈥?00ms)
     function humanDelay() {
         return 400 + Math.floor(Math.random() * 500);
     }
@@ -265,7 +265,7 @@
     // Send a leave-room message. Only sends if tracked as joined.
     function leaveRoom(room) {
         if (!joinedRooms.has(room)) return false;
-        console.log('[COR3 Helper] Leaving room:', room);
+        console.log('[COR3 Helper] 离开房间：', room);
         wsSend('42["leave-room",{"room":"' + room + '"}]');
         joinedRooms.delete(room);
         return true;
@@ -273,7 +273,7 @@
 
     // Send a join-room message and mark as joined.
     function sendJoin(room) {
-        console.log('[COR3 Helper] Joining room:', room);
+        console.log('[COR3 Helper] 加入房间：', room);
         wsSend('42["join-room",{"room":"' + room + '"}]');
         joinedRooms.add(room);
     }
@@ -303,9 +303,9 @@
         return chain;
     }
 
-    // Enter rooms properly: leave any already-joined rooms (child→parent),
-    // then join them all fresh (parent→child).
-    // `rooms` must be in parent→child order, e.g. ['network-map', 'market']
+    // Enter rooms properly: leave any already-joined rooms (child鈫抪arent),
+    // then join them all fresh (parent鈫抍hild).
+    // `rooms` must be in parent鈫抍hild order, e.g. ['network-map', 'market']
     function enterRooms(rooms) {
         // Build leave list: reverse order (child first), only rooms we're in
         var toLeave = rooms.slice().reverse().filter(function (r) { return joinedRooms.has(r); });
@@ -323,7 +323,7 @@
     // HOME Market: just send get.options (no room joins needed)
     window.__cor3RequestMarket = function () {
         var msg = '42["event",{"event":{"name":"market","action":"get.options"},"data":{"marketId":"019d3ea4-85bd-7389-904d-8f7c85841134"}}]';
-        console.log('[COR3 Helper] Requesting HOME market options');
+        console.log('[COR3 Helper] 正在请求 HOME 市场选项');
         wsSend(msg);
         return true;
     };
@@ -332,7 +332,7 @@
     window.__cor3RequestDarkMarket = function () {
         var setEndpoint = '42["event",{"event":{"name":"network-map","action":"set.endpoint"},"data":{"serverId":"019d29c5-4b37-79bf-b23e-304d8ea03c15"}}]';
         var getOptions = '42["event",{"event":{"name":"market","action":"get.options"},"data":{"marketId":"019d3ea4-85bd-7389-904d-908ba9194aa0"}}]';
-        console.log('[COR3 Helper] Setting D4RK endpoint (no room join), then requesting options');
+        console.log('[COR3 Helper] 正在设置 D4RK 端点（无需加入房间），随后请求选项');
         wsSend(setEndpoint);
         setTimeout(function () {
             wsSend(getOptions);
@@ -357,12 +357,12 @@
     window.__cor3InitialFetch = function () {
         if (initialFetchDone) return;
         initialFetchDone = true;
-        console.log('[COR3 Helper] Running initial data fetch (page load)');
+        console.log('[COR3 Helper] 正在执行初始数据抓取（页面加载）');
 
         // Trigger daily ops fetch via content script
         window.postMessage({ type: 'COR3_FETCH_DAILY_OPS' }, '*');
 
-        // Fetch both markets — Market-1 is instant, Market-2 needs endpoint set first
+        // Fetch both markets 鈥?Market-1 is instant, Market-2 needs endpoint set first
         window.__cor3RequestMarket();
         setTimeout(function () {
             window.__cor3RequestDarkMarket();
@@ -400,7 +400,7 @@
         }
         if (event.data && event.data.type === 'COR3_STOP_DECRYPT_SOLVER') {
             window.__solverAbort = true;
-            console.log('[COR3 Helper] Decrypt solver stop signal sent.');
+            console.log('[COR3 Helper] 已发送解密求解器停止信号。');
         }
         if (event.data && event.data.type === 'COR3_START_DECRYPT_SOLVER') {
             // If solver is already running, do nothing
@@ -408,9 +408,11 @@
             // If solver was stopped, reset flags and re-inject will handle it
             window.__solverAbort = false;
             window.__solverActive = false;
-            console.log('[COR3 Helper] Decrypt solver restart signal — ready for re-injection.');
+            console.log('[COR3 Helper] 解密求解器重启信号已发出 鈥?准备重新注入。');
         }
     });
 
-    console.log('[COR3 Helper] WebSocket interceptor installed at document_start');
+    console.log('[COR3 Helper] WebSocket 拦截器已在 document_start 安装');
 })();
+
+

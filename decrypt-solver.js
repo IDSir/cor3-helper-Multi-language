@@ -1,10 +1,10 @@
-// decrypt-solver.js
+﻿// decrypt-solver.js
 // Auto-solver for "decrypt" hacking minigame on cor3.gg
 // Injected into MAIN world. Controllable via window.__solverAbort flag.
 
 (function () {
 	if (window.__solverActive) {
-		console.warn('⚠️ Solver is already active. Aborting duplicate initialization.');
+		console.warn('鈿狅笍 求解器已处于活动状态，已中止重复初始化。');
 		return;
 	}
 	window.__solverActive = true;
@@ -68,7 +68,7 @@
 	function detectFields(lines) {
 		const fields = [];
 		for (const line of lines) {
-			const m = line.match(/→\s*(.+)/);
+			const m = line.match(/鈫抃s*(.+)/);
 			if (m) {
 				fields.push(m[1].split('/').map((s) => s.trim()));
 			}
@@ -132,12 +132,12 @@
 		const FIELDS = detectFields(lines);
 
 		if (FIELDS.length === 0) {
-			console.warn('⚠️ Could not detect fields from logs.');
+			console.warn('鈿狅笍 无法从日志中识别字段。');
 			return;
 		}
 
 		console.log(
-			'%c📋 Detected fields:',
+			'%c馃搵 检测到字段：',
 			'color: #b08944; font-weight: bold',
 			FIELDS.map((f, i) => `\n   ${i}: [${f.join(', ')}]`).join('')
 		);
@@ -146,7 +146,7 @@
 		const input = document.querySelector(`input[placeholder="${placeholder}"]`);
 
 		if (!input) {
-			console.error(`❌ Input field not found (looked for placeholder="${placeholder}")`);
+			console.error(`鉂?未找到输入框（查找的 placeholder="${placeholder}"）`);
 			return;
 		}
 
@@ -155,7 +155,7 @@
 		const getDist = (a, b) => distMatrix[a * N + b];
 
 		if (solver.key === cachedSolver.key && memo.size > 0) {
-			console.log('%c♻️ Reusing cached solver', 'color: #8fb24e; font-weight: bold');
+			console.log('%c鈾伙笍 复用缓存求解器', 'color: #8fb24e; font-weight: bold');
 		}
 
 		// --- Minimax with Pruning ---
@@ -236,11 +236,11 @@
 
 		const doGuess = async (combo, label) => {
 			if (window.__solverAbort) return null;
-			console.log(`%c▶ [${label}] ${combo}`, 'color: #7c9ef3; font-weight: bold');
+			console.log(`%c鈻?[${label}] ${combo}`, 'color: #7c9ef3; font-weight: bold');
 			await submit(input, combo);
 			const val = await waitForResponse(input, combo);
 			if (val === null) {
-				console.info(`❌ Mismatch count not found for ${label}`);
+				console.info(`鉂?未找到 mismatch 计数： ${label}`);
 			} else {
 				console.log(`   Mismatch: ${val}`);
 			}
@@ -259,7 +259,7 @@
 			possibilities = possibilities.filter((p) => getDist(bestGuessIdx, p) === m);
 
 			if (possibilities.length === 0) {
-				console.error('❌ No possibilities left. Something went wrong.');
+				console.error('鉂?没有剩余可能性，出现异常。');
 				return;
 			}
 		}
@@ -268,7 +268,7 @@
 	// --- Watcher --------------------------------------------------------------
 
 	async function waitForMinigame() {
-		console.log('%c👀 [COR3 Helper] Decrypt solver watching for minigame...', 'color: #888; font-style: italic');
+		console.log('%c馃憖 [COR3 Helper] 解密求解器正在监视小游戏...', 'color: #888; font-style: italic');
 		getOrCreateSolver([
 			['v1.0', 'v1.1', 'v2.0'],
 			['GET', 'PUT', 'POST'],
@@ -288,12 +288,12 @@
 				const isReady = lines.length > 0 && lines[lines.length - 1].startsWith('Attempts:');
 
 				if (isReady) {
-					console.log('%c✅ [COR3 Helper] Minigame detected, starting solver...', 'color: #8fb24e; font-weight: bold');
+					console.log('%c鉁?[COR3 Helper] 检测到小游戏，开始求解...', 'color: #8fb24e; font-weight: bold');
 					await runSolver();
 
 					if (window.__solverAbort) break;
 
-					console.log('%c⏳ [COR3 Helper] Waiting for minigame to close...', 'color: #888; font-style: italic');
+					console.log('%c鈴?[COR3 Helper] 正在等待小游戏关闭...', 'color: #888; font-style: italic');
 					while (
 						!window.__solverAbort &&
 						document.querySelector(
@@ -304,7 +304,7 @@
 					}
 
 					if (!window.__solverAbort) {
-						console.log('%c👀 [COR3 Helper] Minigame closed. Watching for next one...', 'color: #888; font-style: italic');
+						console.log('%c馃憖 [COR3 Helper] 小游戏已关闭，继续监视下一个...', 'color: #888; font-style: italic');
 					}
 				}
 			}
@@ -313,8 +313,10 @@
 		// Cleanup when aborted
 		window.__solverActive = false;
 		window.__solverAbort = false;
-		console.log('%c🛑 [COR3 Helper] Decrypt solver stopped.', 'color: #ff5555; font-weight: bold');
+		console.log('%c馃洃 [COR3 Helper] 解密求解器已停止。', 'color: #ff5555; font-weight: bold');
 	}
 
 	waitForMinigame();
 })();
+
+

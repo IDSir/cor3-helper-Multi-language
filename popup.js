@@ -82,12 +82,12 @@ if (sidePanelBtn) {
     sidePanelBtn.addEventListener('click', async () => {
         try {
             const tab = await getCor3Tab();
-            if (!tab) { statusDiv.textContent = 'No cor3.gg tab found.'; return; }
+            if (!tab) { statusDiv.textContent = '未找到 cor3.gg 标签页。'; return; }
             await chrome.sidePanel.open({ tabId: tab.id });
             window.close();
         } catch (e) {
             // Fallback: if sidePanel API isn't available, notify user
-            statusDiv.textContent = 'Side panel not supported in this browser.';
+            statusDiv.textContent = '当前浏览器不支持侧边栏。';
         }
     });
 }
@@ -112,9 +112,9 @@ let alarms = []; // array of alarm objects
 let editingAlarmId = null; // null = new, string = editing existing
 
 const TIMER_LABELS = {
-    daily: 'Daily Ops Timer',
-    home_jobs: 'Market-1 Jobs Reset',
-    dark_jobs: 'Market-2 Jobs Reset'
+    daily: '每日任务计时器',
+    home_jobs: 'Market-1 任务重置',
+    dark_jobs: 'Market-2 任务重置'
 };
 
 // Dynamically populate expedition options in alarm timer select
@@ -128,7 +128,7 @@ function updateExpeditionAlarmOptions(expeditions) {
         if (!exp.endTime) continue;
         const opt = document.createElement('option');
         opt.value = 'exp_' + exp.id;
-        const label = (exp.locationName || 'Expedition') + ' — ' + (exp.zoneName || '');
+        const label = (exp.locationName || '远征') + ' — ' + (exp.zoneName || '');
         opt.textContent = label;
         TIMER_LABELS['exp_' + exp.id] = label;
         alarmExpeditionGroup.appendChild(opt);
@@ -170,7 +170,7 @@ async function sendAlarmsToContent() {
 
 function renderAlarmList() {
     if (alarms.length === 0) {
-        alarmList.innerHTML = '<div class="no-alarms">No alarms configured. Click ➕ to add one.</div>';
+        alarmList.innerHTML = '<div class="no-alarms">尚未配置闹钟。点击 ➕ 添加一个。</div>';
         return;
     }
     alarmList.innerHTML = alarms.map(a => {
@@ -188,8 +188,8 @@ function renderAlarmList() {
                 <div class="alarm-detail">⏱ ${timeStr} · 🔊 ${a.volume}%${a.continuous ? ' · 🔁' : ''}</div>
             </div>
             <div class="alarm-actions">
-                <button data-action="edit" data-id="${a.id}" title="Edit">✏️</button>
-                <button data-action="delete" data-id="${a.id}" title="Delete">🗑️</button>
+                <button data-action="edit" data-id="${a.id}" title="编辑">✏️</button>
+                <button data-action="delete" data-id="${a.id}" title="删除">🗑️</button>
             </div>
         </div>`;
     }).join('');
@@ -221,7 +221,7 @@ function renderAlarmList() {
 function openAlarmForm(alarm = null) {
     if (alarm) {
         editingAlarmId = alarm.id;
-        alarmFormTitle.textContent = 'Edit Alarm';
+        alarmFormTitle.textContent = '编辑闹钟';
         alarmTimerSelect.value = alarm.timerSource;
         alarmMinutes.value = Math.floor(alarm.thresholdSeconds / 60);
         alarmSeconds.value = alarm.thresholdSeconds % 60;
@@ -230,7 +230,7 @@ function openAlarmForm(alarm = null) {
         alarmVolumeLabel.textContent = alarm.volume + '%';
     } else {
         editingAlarmId = null;
-        alarmFormTitle.textContent = 'New Alarm';
+        alarmFormTitle.textContent = '新建闹钟';
         alarmTimerSelect.value = 'daily';
         alarmMinutes.value = 1;
         alarmSeconds.value = 0;
@@ -294,7 +294,7 @@ stopAllAlarmsBtn.addEventListener('click', async () => {
 chrome.runtime.onMessage.addListener((request) => {
     if (request.action === "alarmActiveStatus") {
         stopAllAlarmsBtn.style.display = request.isActive ? '' : 'none';
-        statusDiv.textContent = request.isActive ? 'Alarm sounding...' : 'Ready';
+        statusDiv.textContent = request.isActive ? '闹钟响铃中...' : '就绪';
     }
 });
 
@@ -314,12 +314,12 @@ const expeditionLastUpdated = document.getElementById('expeditionLastUpdated');
 function formatTimeAgo(ts) {
     if (!ts) return '';
     const diff = Date.now() - ts;
-    if (diff < 60000) return 'Updated just now';
+    if (diff < 60000) return '刚刚更新';
     const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `Updated ${mins}m ago`;
+    if (mins < 60) return `${mins} 分钟前更新`;
     const hrs = Math.floor(mins / 60);
     const remMins = mins % 60;
-    return `Updated ${hrs}h ${remMins}m ago`;
+    return `${hrs}小时 ${remMins}分钟前更新`;
 }
 
 function showLastUpdated(el, tsKey) {
@@ -355,7 +355,7 @@ function renderExpeditionInfo(expeditions) {
     expeditionInfoContainer.innerHTML = '';
 
     if (!expeditions || expeditions.length === 0) {
-        expeditionInfoContainer.innerHTML = '<div class="no-decisions">No active expeditions.</div>';
+        expeditionInfoContainer.innerHTML = '<div class="no-decisions">暂无进行中的远征。</div>';
         return;
     }
 
@@ -369,28 +369,28 @@ function renderExpeditionInfo(expeditions) {
         card.className = 'expedition-card';
 
         const statusClass = exp.status === 'RUNNING' ? ' running' : '';
-        const mercName = exp.mercenary ? exp.mercenary.callsign : 'Unknown';
-        const insurance = exp.hasInsurance ? 'Yes' : 'No';
+        const mercName = exp.mercenary ? exp.mercenary.callsign : '未知';
+        const insurance = exp.hasInsurance ? '是' : '否';
 
         let timerHtml = '';
         if (exp.endTime) {
             timerHtml = `
                 <div class="exp-timer-row">
                     <span style="font-size:11px;color:var(--accent-orange);">⏳ <span class="exp-timer" data-exp-id="${exp.id}">${formatTimeRemaining(exp.endTime)}</span></span>
-                    <button class="refresh-btn-small pin-btn pin-exp-btn" data-exp-id="${exp.id}" title="Pin Expedition Timer">📌</button>
+                    <button class="refresh-btn-small pin-btn pin-exp-btn" data-exp-id="${exp.id}" title="固定远征计时器">📌</button>
                 </div>
             `;
         }
 
         card.innerHTML = `
             <div class="exp-header">
-                <span class="exp-title">📍 ${exp.locationName || 'Unknown'} — ${exp.zoneName || 'Unknown'}</span>
-                <span class="exp-status${statusClass}">${exp.status || 'UNKNOWN'}</span>
+                <span class="exp-title">📍 ${exp.locationName || '未知'} — ${exp.zoneName || '未知'}</span>
+                <span class="exp-status${statusClass}">${exp.status || '未知'}</span>
             </div>
-            <div class="detail-row"><span class="label">Mercenary:</span> 🧑 ${mercName}</div>
-            <div class="detail-row"><span class="label">Total Cost:</span> 💰 ${exp.totalCost ? exp.totalCost.toLocaleString() : '--'}</div>
-            <div class="detail-row"><span class="label">Insurance:</span> ${insurance}</div>
-            <div class="detail-row"><span class="label">Risk Score:</span> ${exp.riskScore ?? '--'}</div>
+            <div class="detail-row"><span class="label">雇佣兵：</span> 🧑 ${mercName}</div>
+            <div class="detail-row"><span class="label">总花费：</span> 💰 ${exp.totalCost ? exp.totalCost.toLocaleString() : '--'}</div>
+            <div class="detail-row"><span class="label">保险：</span> ${insurance}</div>
+            <div class="detail-row"><span class="label">风险评分：</span> ${exp.riskScore ?? '--'}</div>
             ${timerHtml}
         `;
         expeditionInfoContainer.appendChild(card);
@@ -414,7 +414,7 @@ function renderDecisions(decisions) {
     decisionsContainer.innerHTML = '';
 
     if (!decisions || decisions.length === 0) {
-        decisionsContainer.innerHTML = '<div class="no-decisions">No pending decisions found.</div>';
+        decisionsContainer.innerHTML = '<div class="no-decisions">未发现待处理决策。</div>';
         return;
     }
 
@@ -423,8 +423,8 @@ function renderDecisions(decisions) {
         card.className = 'decision-card';
 
         const statusTag = d.isResolved
-            ? '<span class="resolved-tag">RESOLVED</span>'
-            : '<span class="pending-tag">PENDING</span>';
+            ? '<span class="resolved-tag">已解决</span>'
+            : '<span class="pending-tag">待处理</span>';
 
         let deadlineHtml = '';
         if (d.decisionDeadline) {
@@ -435,9 +435,9 @@ function renderDecisions(decisions) {
                 const mins = Math.floor(diffMs / 60000);
                 const hrs = Math.floor(mins / 60);
                 const remMins = mins % 60;
-                deadlineHtml = `<div class="deadline">⏳ Deadline: ${hrs}h ${remMins}m remaining</div>`;
+                deadlineHtml = `<div class="deadline">⏳ 截止：剩余 ${hrs}小时 ${remMins}分钟</div>`;
             } else {
-                deadlineHtml = '<div class="deadline">⏳ Deadline: Expired</div>';
+                deadlineHtml = '<div class="deadline">⏳ 截止：已过期</div>';
             }
         }
 
@@ -452,8 +452,8 @@ function renderDecisions(decisions) {
                     <div class="option-row${selectedClass}">
                         <span class="option-label">${opt.label}${isSelected ? ' ✓' : ''}</span>
                         <span class="option-stats">
-                            <span class="stat-risk">Risk: ${riskSign}${opt.riskModifier}</span>
-                            <span class="stat-loot">Loot: ${lootSign}${opt.lootModifier}</span>
+                            <span class="stat-risk">风险：${riskSign}${opt.riskModifier}</span>
+                            <span class="stat-loot">战利品：${lootSign}${opt.lootModifier}</span>
                         </span>
                     </div>`;
             }
@@ -478,7 +478,7 @@ async function loadExpeditions() {
 }
 
 async function requestExpeditions() {
-    expeditionInfoContainer.innerHTML = '<div class="no-decisions">Loading expedition data...</div>';
+    expeditionInfoContainer.innerHTML = '<div class="no-decisions">正在加载远征数据...</div>';
     // Clear old data so poll detects fresh arrival
     await chrome.storage.local.remove(['expeditionsData', 'expeditionDecisions']);
     try {
@@ -501,8 +501,8 @@ async function requestExpeditions() {
         clearInterval(poll);
         if (!loaded) {
             loaded = true;
-            expeditionInfoContainer.innerHTML = '<div class="no-decisions">No active expeditions.</div>';
-            decisionsContainer.innerHTML = '<div class="no-decisions">No pending decisions found.</div>';
+            expeditionInfoContainer.innerHTML = '<div class="no-decisions">暂无进行中的远征。</div>';
+            decisionsContainer.innerHTML = '<div class="no-decisions">未发现待处理决策。</div>';
         }
     }, 5000);
 }
@@ -527,7 +527,7 @@ inventorySectionToggle.addEventListener('click', async () => {
 });
 
 async function requestAndLoadInventory() {
-    inventoryContainer.innerHTML = '<div class="no-decisions">Requesting inventory from server...</div>';
+    inventoryContainer.innerHTML = '<div class="no-decisions">正在向服务器请求库存...</div>';
     spaceInfo.textContent = '-- / --';
     try {
         const tab = await getCor3Tab();
@@ -546,7 +546,7 @@ function renderInventory(data) {
     inventoryContainer.innerHTML = '';
 
     if (!data || !data.items || data.items.length === 0) {
-        inventoryContainer.innerHTML = '<div class="no-decisions">No items found.<br>Make sure you have the cor3.gg tab open.</div>';
+        inventoryContainer.innerHTML = '<div class="no-decisions">未找到物品。<br>请确保已打开 cor3.gg 标签页。</div>';
         spaceInfo.textContent = '-- / --';
         return;
     }
@@ -575,10 +575,10 @@ function renderInventory(data) {
         const tierTagClass = 'tier-tag tier-tag-' + (item.tier || 'common').toLowerCase();
 
         let badgesHtml = `<span class="${tierTagClass}">${item.tier || 'COMMON'}</span>`;
-        if (item.canSell) badgesHtml += '<span class="badge badge-sell">SELL</span>';
-        if (item.canCraft) badgesHtml += '<span class="badge badge-craft">CRAFT</span>';
-        if (item.canUse) badgesHtml += '<span class="badge badge-use">USE</span>';
-        if (item.canDelete) badgesHtml += '<span class="badge badge-delete">DEL</span>';
+        if (item.canSell) badgesHtml += '<span class="badge badge-sell">出售</span>';
+        if (item.canCraft) badgesHtml += '<span class="badge badge-craft">制作</span>';
+        if (item.canUse) badgesHtml += '<span class="badge badge-use">使用</span>';
+        if (item.canDelete) badgesHtml += '<span class="badge badge-delete">删</span>';
 
         const priceHtml = item.canSell && item.sellPrice
             ? `<div class="item-price">💰 ${item.sellPrice.toLocaleString()}</div>`
@@ -612,31 +612,31 @@ let dailyNextTaskTime = null;
 
 function updateDailyTimer() {
     if (!dailyNextTaskTime) {
-        dailyTimerLine.textContent = '⏳ Next Task: --:--:--';
+        dailyTimerLine.textContent = '⏳ 下次任务： --:--:--';
         return;
     }
     const now = Date.now();
     const diff = dailyNextTaskTime - now;
     if (diff <= 0) {
-        dailyTimerLine.textContent = '⏳ Next Task: 0h:0m:0s';
+        dailyTimerLine.textContent = '⏳ 下次任务： 0h:0m:0s';
         return;
     }
     const totalSec = Math.floor(diff / 1000);
     const h = Math.floor(totalSec / 3600);
     const m = Math.floor((totalSec % 3600) / 60);
     const s = totalSec % 60;
-    dailyTimerLine.textContent = `⏳ Next Task: ${h}h:${m}m:${s}s`;
+    dailyTimerLine.textContent = `⏳ 下次任务： ${h}h:${m}m:${s}s`;
 }
 
 async function fetchDailyOps() {
     try {
         const tab = await getCor3Tab();
-        if (!tab) throw new Error('No cor3.gg tab');
+        if (!tab) throw new Error('未找到 cor3.gg 标签页');
         const response = await chrome.tabs.sendMessage(tab.id, { action: "fetchDailyOps" });
         if (response && response.data) {
             const data = response.data;
             dailyNextTaskTime = data.nextTaskTime ? new Date(data.nextTaskTime).getTime() : null;
-            dailyClaimed.textContent = data.hasClaimedToday ? 'Yes' : 'No';
+            dailyClaimed.textContent = data.hasClaimedToday ? '是' : '否';
             dailyStreak.textContent = data.currentStreak ?? '--';
             dailyDifficulty.textContent = data.difficulty ?? '--';
             dailyStreakBonus.textContent = data.streakBonus ?? '--';
@@ -647,7 +647,7 @@ async function fetchDailyOps() {
             const { dailyOpsData } = await chrome.storage.local.get('dailyOpsData');
             if (dailyOpsData) {
                 dailyNextTaskTime = dailyOpsData.nextTaskTime ? new Date(dailyOpsData.nextTaskTime).getTime() : null;
-                dailyClaimed.textContent = dailyOpsData.hasClaimedToday ? 'Yes' : 'No';
+                dailyClaimed.textContent = dailyOpsData.hasClaimedToday ? '是' : '否';
                 dailyStreak.textContent = dailyOpsData.currentStreak ?? '--';
                 dailyDifficulty.textContent = dailyOpsData.difficulty ?? '--';
                 dailyStreakBonus.textContent = dailyOpsData.streakBonus ?? '--';
@@ -660,16 +660,16 @@ async function fetchDailyOps() {
             const { dailyOpsData } = await chrome.storage.local.get('dailyOpsData');
             if (dailyOpsData) {
                 dailyNextTaskTime = dailyOpsData.nextTaskTime ? new Date(dailyOpsData.nextTaskTime).getTime() : null;
-                dailyClaimed.textContent = dailyOpsData.hasClaimedToday ? 'Yes' : 'No';
+                dailyClaimed.textContent = dailyOpsData.hasClaimedToday ? '是' : '否';
                 dailyStreak.textContent = dailyOpsData.currentStreak ?? '--';
                 dailyDifficulty.textContent = dailyOpsData.difficulty ?? '--';
                 dailyStreakBonus.textContent = dailyOpsData.streakBonus ?? '--';
                 updateDailyTimer();
             } else {
-                dailyTimerLine.textContent = '⏳ Next Task: --:--:--';
+                dailyTimerLine.textContent = '⏳ 下次任务： --:--:--';
             }
         } catch (e2) {
-            dailyTimerLine.textContent = '⏳ Next Task: --:--:--';
+            dailyTimerLine.textContent = '⏳ 下次任务： --:--:--';
         }
     }
 }
@@ -680,7 +680,7 @@ async function loadCachedDailyOps() {
         const { dailyOpsData } = await chrome.storage.local.get('dailyOpsData');
         if (dailyOpsData) {
             dailyNextTaskTime = dailyOpsData.nextTaskTime ? new Date(dailyOpsData.nextTaskTime).getTime() : null;
-            dailyClaimed.textContent = dailyOpsData.hasClaimedToday ? 'Yes' : 'No';
+            dailyClaimed.textContent = dailyOpsData.hasClaimedToday ? '是' : '否';
             dailyStreak.textContent = dailyOpsData.currentStreak ?? '--';
             dailyDifficulty.textContent = dailyOpsData.difficulty ?? '--';
             dailyStreakBonus.textContent = dailyOpsData.streakBonus ?? '--';
@@ -707,7 +707,7 @@ let darkMarketName = null;
 function formatTimeRemaining(dateStr) {
     if (!dateStr) return '--';
     const diff = new Date(dateStr).getTime() - Date.now();
-    if (diff <= 0) return 'Expired';
+    if (diff <= 0) return '已过期';
     const totalSec = Math.floor(diff / 1000);
     const h = Math.floor(totalSec / 3600);
     const m = Math.floor((totalSec % 3600) / 60);
@@ -733,7 +733,7 @@ function renderMarketInto(container, data, labelPrefix, idPrefix) {
     container.innerHTML = '';
 
     if (!data || !data.market) {
-        container.innerHTML = '<div class="no-decisions">No market data available.<br>Make sure you have the cor3.gg tab open.</div>';
+        container.innerHTML = '<div class="no-decisions">无可用市场数据。<br>请确保已打开 cor3.gg 标签页。</div>';
         return;
     }
 
@@ -745,28 +745,28 @@ function renderMarketInto(container, data, labelPrefix, idPrefix) {
 
     // Credits
     if (md.userCredits !== undefined) {
-        html += `<div style="font-size:11px;color:var(--accent-green);margin-bottom:4px;">💰 Credits: ${md.userCredits.toLocaleString()}</div>`;
+        html += `<div style="font-size:11px;color:var(--accent-green);margin-bottom:4px;">💰 积分： ${md.userCredits.toLocaleString()}</div>`;
     }
 
     // Reputation section
     if (rep) {
         const pct = rep.requiredReputation > 0 ? Math.min(100, Math.floor((rep.progress / rep.requiredReputation) * 100)) : 0;
-        html += `<div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">Reputation — Level ${rep.level}</div>`;
+        html += `<div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">声望 — 等级 ${rep.level}</div>`;
         html += `<div class="market-rep-bar"><div class="market-rep-fill" style="width:${pct}%"></div></div>`;
         html += `<div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;">`;
-        html += `Progress: ${rep.progress}/${rep.requiredReputation} · `;
-        html += `Level Locked: ${rep.isLevelLocked ? 'Yes' : 'No'} · `;
-        html += `Max Level: ${rep.isMaxLevel ? 'Yes' : 'No'}`;
+        html += `进度： ${rep.progress}/${rep.requiredReputation} · `;
+        html += `等级锁定： ${rep.isLevelLocked ? '是' : '否'} · `;
+        html += `最高等级： ${rep.isMaxLevel ? '是' : '否'}`;
         html += `</div>`;
     }
 
     // Next jobs reset timer
     if (md.nextJobsResetAt) {
-        html += `<div class="${idPrefix}-reset-timer" style="font-size:11px;color:var(--accent-orange);margin-bottom:8px;">⏳ Jobs Reset: ${formatTimeRemaining(md.nextJobsResetAt)}</div>`;
+        html += `<div class="${idPrefix}-reset-timer" style="font-size:11px;color:var(--accent-orange);margin-bottom:8px;">⏳ 任务重置： ${formatTimeRemaining(md.nextJobsResetAt)}</div>`;
     }
 
     // Items List (expandable)
-    html += `<div class="expandable-header" id="${idPrefix}ItemsToggle"><span class="expand-arrow">▶</span><span class="expand-label">Items List (${(md.lots || []).length})</span></div>`;
+    html += `<div class="expandable-header" id="${idPrefix}ItemsToggle"><span class="expand-arrow">▶</span><span class="expand-label">物品列表 (${(md.lots || []).length})</span></div>`;
     html += `<div class="expandable-body" id="${idPrefix}ItemsBody">`;
 
     if (md.lots && md.lots.length > 0) {
@@ -783,29 +783,29 @@ function renderMarketInto(container, data, labelPrefix, idPrefix) {
             for (const lot of items) {
                 const det = lot.details || {};
                 const isBought = lot.availableCount === 0;
-                const boughtTag = isBought ? '<span class="market-item-bought">BOUGHT</span>' : '';
+                const boughtTag = isBought ? '<span class="market-item-bought">已购买</span>' : '';
                 const imgHtml = det.image ? `<img src="${det.image}" alt="${det.name || ''}" loading="lazy">` : '';
 
                 html += `<div class="market-item-card">`;
                 html += imgHtml;
                 html += `<div class="market-item-info">`;
-                html += `<div class="market-item-name">${det.name || 'Unknown'}${boughtTag}</div>`;
+                html += `<div class="market-item-name">${det.name || '未知'}${boughtTag}</div>`;
                 html += `<div class="market-item-price">💰 ${lot.price ? lot.price.toLocaleString() : '--'}</div>`;
 
                 // Expandable details per item
                 const uid = idPrefix + '_mitem_' + lot.id;
-                html += `<div class="expandable-header" data-expand="${uid}"><span class="expand-arrow">▶</span><span class="expand-label">Details</span></div>`;
+                html += `<div class="expandable-header" data-expand="${uid}"><span class="expand-arrow">▶</span><span class="expand-label">详情</span></div>`;
                 html += `<div class="expandable-body" id="${uid}">`;
-                html += `<div class="detail-row"><span class="label">Category:</span> ${det.category || lot.category || '--'}</div>`;
-                html += `<div class="detail-row"><span class="label">Name:</span> ${det.name || '--'}</div>`;
-                html += `<div class="detail-row"><span class="label">Base Price:</span> ${det.price ? det.price.toLocaleString() : '--'}</div>`;
+                html += `<div class="detail-row"><span class="label">分类：</span> ${det.category || lot.category || '--'}</div>`;
+                html += `<div class="detail-row"><span class="label">名称：</span> ${det.name || '--'}</div>`;
+                html += `<div class="detail-row"><span class="label">基础价格：</span> ${det.price ? det.price.toLocaleString() : '--'}</div>`;
                 html += `</div>`;
 
                 html += `</div></div>`;
             }
         }
     } else {
-        html += '<div class="no-decisions">No items in market.</div>';
+        html += '<div class="no-decisions">市场中没有物品。</div>';
     }
     html += `</div>`;
 
@@ -833,7 +833,7 @@ function renderMarket(data) {
         coreMarketName = data.market.marketName;
         updateMarketLabel(coreMarketLabel, coreMarketName, 'Market-1', '🏠');
         // Update alarm dropdown option text and alarm list labels
-        TIMER_LABELS.home_jobs = coreMarketName + ' Jobs Reset';
+        TIMER_LABELS.home_jobs = coreMarketName + ' 任务重置';
         const opt = alarmTimerSelect.querySelector('option[value="home_jobs"]');
         if (opt) opt.textContent = TIMER_LABELS.home_jobs;
         // Re-render pinned timers and alarm list to update labels
@@ -845,7 +845,7 @@ function renderMarket(data) {
 
 function renderDarkMarket(data, available) {
     if (available === false) {
-        darkMarketContainer.innerHTML = '<div class="no-decisions" style="color:var(--accent-red);">⚠️ Market-2 is currently unavailable.<br>The endpoint server could not be reached.</div>';
+        darkMarketContainer.innerHTML = '<div class="no-decisions" style="color:var(--accent-red);">⚠️ Market-2 当前不可用。<br>无法连接到端点服务器。</div>';
         return;
     }
     if (data && data.nextJobsResetAt) bmiNextJobsResetAt = data.nextJobsResetAt;
@@ -854,7 +854,7 @@ function renderDarkMarket(data, available) {
         darkMarketName = data.market.marketName;
         updateMarketLabel(darkMarketLabel, darkMarketName, 'Market-2', '🌑');
         // Update alarm dropdown option text and alarm list labels
-        TIMER_LABELS.dark_jobs = darkMarketName + ' Jobs Reset';
+        TIMER_LABELS.dark_jobs = darkMarketName + ' 任务重置';
         const opt = alarmTimerSelect.querySelector('option[value="dark_jobs"]');
         if (opt) opt.textContent = TIMER_LABELS.dark_jobs;
         // Re-render pinned timers and alarm list to update labels
@@ -876,8 +876,8 @@ async function loadDarkMarket() {
 
 // Request both markets — just sends get.options, no room joins needed
 async function requestMarketData() {
-    marketContainer.innerHTML = '<div class="no-decisions">Requesting market data...</div>';
-    darkMarketContainer.innerHTML = '<div class="no-decisions">Requesting market data...</div>';
+    marketContainer.innerHTML = '<div class="no-decisions">正在请求市场数据...</div>';
+    darkMarketContainer.innerHTML = '<div class="no-decisions">正在请求市场数据...</div>';
     await chrome.storage.local.remove(['marketData', 'darkMarketData', 'darkMarketAvailable']);
     try {
         const tab = await getCor3Tab();
@@ -918,10 +918,10 @@ async function requestMarketData() {
 }
 
 async function refreshMarketData() {
-    marketContainer.innerHTML = '<div class="no-decisions">Refreshing market data...</div>';
+    marketContainer.innerHTML = '<div class="no-decisions">正在刷新市场数据...</div>';
     try {
         const tab = await getCor3Tab();
-        if (!tab) throw new Error('No cor3.gg tab');
+        if (!tab) throw new Error('未找到 cor3.gg 标签页');
         await chrome.tabs.sendMessage(tab.id, { action: "refreshMarket" });
         setTimeout(() => { loadMarket(); refreshAllTimestamps(); }, 3000);
     } catch (e) {
@@ -932,10 +932,10 @@ async function refreshMarketData() {
 refreshMarketBtn.addEventListener('click', () => refreshMarketData());
 
 async function refreshDarkMarketData() {
-    darkMarketContainer.innerHTML = '<div class="no-decisions">Refreshing market data...</div>';
+    darkMarketContainer.innerHTML = '<div class="no-decisions">正在刷新市场数据...</div>';
     try {
         const tab = await getCor3Tab();
-        if (!tab) throw new Error('No cor3.gg tab');
+        if (!tab) throw new Error('未找到 cor3.gg 标签页');
         await chrome.tabs.sendMessage(tab.id, { action: "refreshDarkMarket" });
         setTimeout(() => { loadDarkMarket(); refreshAllTimestamps(); }, 3000);
     } catch (e) {
@@ -952,26 +952,26 @@ chrome.storage.local.get(['marketData', 'darkMarketData', 'darkMarketAvailable']
         if (result.marketData.market && result.marketData.market.marketName) {
             coreMarketName = result.marketData.market.marketName;
             updateMarketLabel(coreMarketLabel, coreMarketName, 'Market-1', '🏠');
-            TIMER_LABELS.home_jobs = coreMarketName + ' Jobs Reset';
+            TIMER_LABELS.home_jobs = coreMarketName + ' 任务重置';
             const opt = alarmTimerSelect.querySelector('option[value="home_jobs"]');
             if (opt) opt.textContent = TIMER_LABELS.home_jobs;
         }
         renderMarket(result.marketData);
     } else {
-        marketContainer.innerHTML = '<div class="no-decisions">No market data cached. Click 🔄 to refresh.</div>';
+        marketContainer.innerHTML = '<div class="no-decisions">未缓存市场数据。点击 🔄 刷新。</div>';
     }
     if (result.darkMarketData) {
         if (result.darkMarketData.nextJobsResetAt) bmiNextJobsResetAt = result.darkMarketData.nextJobsResetAt;
         if (result.darkMarketData.market && result.darkMarketData.market.marketName) {
             darkMarketName = result.darkMarketData.market.marketName;
             updateMarketLabel(darkMarketLabel, darkMarketName, 'Market-2', '🌑');
-            TIMER_LABELS.dark_jobs = darkMarketName + ' Jobs Reset';
+            TIMER_LABELS.dark_jobs = darkMarketName + ' 任务重置';
             const opt = alarmTimerSelect.querySelector('option[value="dark_jobs"]');
             if (opt) opt.textContent = TIMER_LABELS.dark_jobs;
         }
         renderDarkMarket(result.darkMarketData, result.darkMarketAvailable);
     } else {
-        darkMarketContainer.innerHTML = '<div class="no-decisions">No market data cached. Click 🔄 to refresh.</div>';
+        darkMarketContainer.innerHTML = '<div class="no-decisions">未缓存市场数据。点击 🔄 刷新。</div>';
     }
 });
 
@@ -1049,7 +1049,7 @@ function renderPinnedTimers() {
         const row = document.createElement('div');
         row.className = 'pinned-timer-row';
         row.innerHTML = `
-            <span class="pinned-timer-label">📅 Daily Ops</span>
+            <span class="pinned-timer-label">📅 每日任务</span>
             <span class="pinned-timer-value" id="pinnedDailyValue">--:--:--</span>
         `;
         pinnedTimersContainer.appendChild(row);
@@ -1059,10 +1059,10 @@ function renderPinnedTimers() {
         const row = document.createElement('div');
         row.className = 'pinned-timer-row';
         row.innerHTML = `
-            <span class="pinned-timer-label">🏠 ${name} Jobs</span>
+            <span class="pinned-timer-label">🏠 ${name} 任务</span>
             <span class="pinned-timer-value" id="pinnedCoreJobsValue">--:--:--</span>
-            <label class="pinned-auto-refresh" title="Auto-refresh jobs when timer hits 0">
-                <input type="checkbox" id="autoRefreshCore" ${autoRefresh.home_jobs ? 'checked' : ''}> Auto
+            <label class="pinned-auto-refresh" title="当计时器归零时自动刷新任务">
+                <input type="checkbox" id="autoRefreshCore" ${autoRefresh.home_jobs ? 'checked' : ''}> 自动
             </label>
         `;
         pinnedTimersContainer.appendChild(row);
@@ -1077,10 +1077,10 @@ function renderPinnedTimers() {
         const row = document.createElement('div');
         row.className = 'pinned-timer-row';
         row.innerHTML = `
-            <span class="pinned-timer-label">🌑 ${name} Jobs</span>
+            <span class="pinned-timer-label">🌑 ${name} 任务</span>
             <span class="pinned-timer-value" id="pinnedDarkJobsValue">--:--:--</span>
-            <label class="pinned-auto-refresh" title="Auto-refresh jobs when timer hits 0">
-                <input type="checkbox" id="autoRefreshDark" ${autoRefresh.dark_jobs ? 'checked' : ''}> Auto
+            <label class="pinned-auto-refresh" title="当计时器归零时自动刷新任务">
+                <input type="checkbox" id="autoRefreshDark" ${autoRefresh.dark_jobs ? 'checked' : ''}> 自动
             </label>
         `;
         pinnedTimersContainer.appendChild(row);
@@ -1097,7 +1097,7 @@ function renderPinnedTimers() {
         const expId = key.substring(4);
         const endTime = expeditionEndTimes[expId];
         // Try to get expedition name from stored data
-        let expLabel = 'Expedition';
+        let expLabel = '远征';
         // We'll resolve the name asynchronously, but for now use cached data
         const row = document.createElement('div');
         row.className = 'pinned-timer-row';
@@ -1136,7 +1136,7 @@ function renderPinnedTimers() {
             if (exp.endTime) expeditionEndTimes[exp.id] = exp.endTime;
             const labelEl = pinnedTimersContainer.querySelector(`.pinned-exp-label[data-exp-id="${exp.id}"]`);
             if (labelEl) {
-                labelEl.textContent = `${exp.locationName || 'Expedition'} — ${exp.zoneName || ''}`;
+                labelEl.textContent = `${exp.locationName || '远征'} — ${exp.zoneName || ''}`;
             }
         }
     });
@@ -1276,13 +1276,13 @@ setInterval(() => {
     if (coreNextJobsResetAt) {
         const homeResetEl = marketContainer.querySelector('.home-reset-timer');
         if (homeResetEl) {
-            homeResetEl.textContent = `⏳ Jobs Reset: ${formatTimeRemaining(coreNextJobsResetAt)}`;
+            homeResetEl.textContent = `⏳ 任务重置： ${formatTimeRemaining(coreNextJobsResetAt)}`;
         }
     }
     if (bmiNextJobsResetAt) {
         const darkResetEl = darkMarketContainer.querySelector('.dark-reset-timer');
         if (darkResetEl) {
-            darkResetEl.textContent = `⏳ Jobs Reset: ${formatTimeRemaining(bmiNextJobsResetAt)}`;
+            darkResetEl.textContent = `⏳ 任务重置： ${formatTimeRemaining(bmiNextJobsResetAt)}`;
         }
     }
 
@@ -1308,7 +1308,7 @@ const autoDecryptToggle = document.getElementById('autoDecryptToggle');
 const decryptStatus = document.getElementById('decryptStatus');
 
 function updateDecryptStatusLabel(enabled) {
-    decryptStatus.textContent = enabled ? 'Active' : 'Off';
+    decryptStatus.textContent = enabled ? '已启用' : '关闭';
     decryptStatus.style.color = enabled ? 'var(--accent-green)' : 'var(--text-dim)';
 }
 
@@ -1339,25 +1339,25 @@ const checkUpdateBtn = document.getElementById('checkUpdateBtn');
 const updateResult = document.getElementById('updateResult');
 
 checkUpdateBtn.addEventListener('click', async () => {
-    updateResult.textContent = 'Checking...';
+    updateResult.textContent = '正在检查...';
     updateResult.style.color = 'var(--text-dim)';
     try {
         const localManifest = chrome.runtime.getManifest();
         const localVersion = localManifest.version;
         const resp = await fetch('https://raw.githubusercontent.com/Femtoce11/cor3-helper/main/manifest.json', { cache: 'no-store' });
-        if (!resp.ok) throw new Error('Failed to fetch remote manifest');
+        if (!resp.ok) throw new Error('获取远程 manifest 失败');
         const remoteManifest = await resp.json();
         const remoteVersion = remoteManifest.version;
 
         if (remoteVersion !== localVersion) {
-            updateResult.innerHTML = `Update available! <b>v${localVersion}</b> → <b>v${remoteVersion}</b><br><a href="https://github.com/Femtoce11/cor3-helper" target="_blank" style="color:var(--accent-cyan);">Download from GitHub</a><br><span style="font-size:9px;color:var(--text-muted);">Download ZIP, extract, and reload on chrome://extensions</span>`;
+            updateResult.innerHTML = `发现新版本！ <b>v${localVersion}</b> → <b>v${remoteVersion}</b><br><a href="https://github.com/Femtoce11/cor3-helper" target="_blank" style="color:var(--accent-cyan);">从 GitHub 下载</a><br><span style="font-size:9px;color:var(--text-muted);">下载 ZIP、解压后在 chrome://extensions 重新加载</span>`;
             updateResult.style.color = 'var(--accent-orange)';
         } else {
-            updateResult.textContent = `You're up to date! (v${localVersion})`;
+            updateResult.textContent = `已是最新版本！ (v${localVersion})`;
             updateResult.style.color = 'var(--accent-green)';
         }
     } catch (e) {
-        updateResult.textContent = 'Could not check for updates. Check your connection.';
+        updateResult.textContent = '无法检查更新，请检查网络连接。';
         updateResult.style.color = 'var(--accent-red)';
     }
 });
