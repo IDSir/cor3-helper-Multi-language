@@ -108,6 +108,4 @@ A Chrome extension that enhances the [cor3.gg](https://cor3.gg) experience by mo
     有效的 cor3.gg 账户
 
 ## License
-许可证
-
 MIT
