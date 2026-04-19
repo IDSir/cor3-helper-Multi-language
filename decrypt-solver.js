@@ -68,7 +68,8 @@
 	function detectFields(lines) {
 		const fields = [];
 		for (const line of lines) {
-			const m = line.match(/鈫抃s*(.+)/);
+			// Support both unicode arrow and ASCII arrow in log lines.
+			const m = line.match(/(?:→|->)\s*(.+)/);
 			if (m) {
 				fields.push(m[1].split('/').map((s) => s.trim()));
 			}
