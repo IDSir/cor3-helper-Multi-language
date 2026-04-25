@@ -82,12 +82,12 @@ if (sidePanelBtn) {
     sidePanelBtn.addEventListener('click', async () => {
         try {
             const tab = await getCor3Tab();
-            if (!tab) { statusDiv.textContent = '未找到 cor3.gg 标签页。'; return; }
+            if (!tab) { statusDiv.textContent = 'No cor3.gg tab found.'; return; }
             await chrome.sidePanel.open({ tabId: tab.id });
             window.close();
         } catch (e) {
             // Fallback: if sidePanel API isn't available, notify user
-            statusDiv.textContent = '当前浏览器不支持侧边栏。';
+            statusDiv.textContent = 'Side panel not supported in this browser.';
         }
     });
 }
@@ -112,9 +112,9 @@ let alarms = []; // array of alarm objects
 let editingAlarmId = null; // null = new, string = editing existing
 
 const TIMER_LABELS = {
-    daily: '每日任务计时器',
-    home_jobs: 'Market-1 任务重置',
-    dark_jobs: 'Market-2 任务重置'
+    daily: 'Daily Ops',
+    home_jobs: 'Market-1 Jobs Reset',
+    dark_jobs: 'Market-2 Jobs Reset'
 };
 
 // Dynamically populate expedition options in alarm timer select
@@ -128,7 +128,7 @@ function updateExpeditionAlarmOptions(expeditions) {
         if (!exp.endTime) continue;
         const opt = document.createElement('option');
         opt.value = 'exp_' + exp.id;
-        const label = (exp.locationName || '远征') + ' — ' + (exp.zoneName || '');
+        const label = (exp.locationName || 'Expedition') + ' — ' + (exp.zoneName || '');
         opt.textContent = label;
         TIMER_LABELS['exp_' + exp.id] = label;
         alarmExpeditionGroup.appendChild(opt);
@@ -170,7 +170,7 @@ async function sendAlarmsToContent() {
 
 function renderAlarmList() {
     if (alarms.length === 0) {
-        alarmList.innerHTML = '<div class="no-alarms">尚未配置闹钟。点击 ➕ 添加一个。</div>';
+        alarmList.innerHTML = '<div class="no-alarms">No alarms configured. Click ➕ to add one.</div>';
         return;
     }
     alarmList.innerHTML = alarms.map(a => {
@@ -188,8 +188,8 @@ function renderAlarmList() {
                 <div class="alarm-detail">⏱ ${timeStr} · 🔊 ${a.volume}%${a.continuous ? ' · 🔁' : ''}</div>
             </div>
             <div class="alarm-actions">
-                <button data-action="edit" data-id="${a.id}" title="编辑">✏️</button>
-                <button data-action="delete" data-id="${a.id}" title="删除">🗑️</button>
+                <button data-action="edit" data-id="${a.id}" title="Edit">✏️</button>
+                <button data-action="delete" data-id="${a.id}" title="Delete">🗑️</button>
             </div>
         </div>`;
     }).join('');
@@ -221,7 +221,7 @@ function renderAlarmList() {
 function openAlarmForm(alarm = null) {
     if (alarm) {
         editingAlarmId = alarm.id;
-        alarmFormTitle.textContent = '编辑闹钟';
+        alarmFormTitle.textContent = 'Edit Alarm';
         alarmTimerSelect.value = alarm.timerSource;
         alarmMinutes.value = Math.floor(alarm.thresholdSeconds / 60);
         alarmSeconds.value = alarm.thresholdSeconds % 60;
@@ -230,7 +230,7 @@ function openAlarmForm(alarm = null) {
         alarmVolumeLabel.textContent = alarm.volume + '%';
     } else {
         editingAlarmId = null;
-        alarmFormTitle.textContent = '新建闹钟';
+        alarmFormTitle.textContent = 'New Alarm';
         alarmTimerSelect.value = 'daily';
         alarmMinutes.value = 1;
         alarmSeconds.value = 0;
@@ -294,7 +294,7 @@ stopAllAlarmsBtn.addEventListener('click', async () => {
 chrome.runtime.onMessage.addListener((request) => {
     if (request.action === "alarmActiveStatus") {
         stopAllAlarmsBtn.style.display = request.isActive ? '' : 'none';
-        statusDiv.textContent = request.isActive ? '闹钟响铃中...' : '就绪';
+        statusDiv.textContent = request.isActive ? 'Alarm sounding...' : 'Ready';
     }
 });
 
@@ -310,16 +310,20 @@ const dailyLastUpdated = document.getElementById('dailyLastUpdated');
 const coreMarketLastUpdated = document.getElementById('coreMarketLastUpdated');
 const darkMarketLastUpdated = document.getElementById('darkMarketLastUpdated');
 const expeditionLastUpdated = document.getElementById('expeditionLastUpdated');
+const decisionLastUpdated = document.getElementById('decisionLastUpdated');
+const inventoryLastUpdated = document.getElementById('inventoryLastUpdated');
+const archivedExpLastUpdated = document.getElementById('archivedExpLastUpdated');
+const mercenariesLastUpdated = document.getElementById('mercenariesLastUpdated');
 
 function formatTimeAgo(ts) {
     if (!ts) return '';
     const diff = Date.now() - ts;
-    if (diff < 60000) return '刚刚更新';
+    if (diff < 60000) return 'Updated just now';
     const mins = Math.floor(diff / 60000);
-    if (mins < 60) return `${mins} 分钟前更新`;
+    if (mins < 60) return `Updated ${mins}m ago`;
     const hrs = Math.floor(mins / 60);
     const remMins = mins % 60;
-    return `${hrs}小时 ${remMins}分钟前更新`;
+    return `Updated ${hrs}h ${remMins}m ago`;
 }
 
 function showLastUpdated(el, tsKey) {
@@ -335,6 +339,10 @@ function refreshAllTimestamps() {
     showLastUpdated(coreMarketLastUpdated, 'marketDataUpdatedAt');
     showLastUpdated(darkMarketLastUpdated, 'darkMarketDataUpdatedAt');
     showLastUpdated(expeditionLastUpdated, 'expeditionsDataUpdatedAt');
+    showLastUpdated(decisionLastUpdated, 'expeditionsDataUpdatedAt');
+    if (inventoryLastUpdated) showLastUpdated(inventoryLastUpdated, 'stashDataUpdatedAt');
+    if (archivedExpLastUpdated) showLastUpdated(archivedExpLastUpdated, 'archivedExpeditionsUpdatedAt');
+    if (mercenariesLastUpdated) showLastUpdated(mercenariesLastUpdated, 'mercenariesUpdatedAt');
 }
 
 // --- Expedition Info + Decisions (inline) ---
@@ -355,7 +363,7 @@ function renderExpeditionInfo(expeditions) {
     expeditionInfoContainer.innerHTML = '';
 
     if (!expeditions || expeditions.length === 0) {
-        expeditionInfoContainer.innerHTML = '<div class="no-decisions">暂无进行中的远征。</div>';
+        expeditionInfoContainer.innerHTML = '<div class="no-decisions">No active expeditions.</div>';
         return;
     }
 
@@ -369,28 +377,28 @@ function renderExpeditionInfo(expeditions) {
         card.className = 'expedition-card';
 
         const statusClass = exp.status === 'RUNNING' ? ' running' : '';
-        const mercName = exp.mercenary ? exp.mercenary.callsign : '未知';
-        const insurance = exp.hasInsurance ? '是' : '否';
+        const mercName = exp.mercenary ? exp.mercenary.callsign : 'Unknown';
+        const insurance = exp.hasInsurance ? 'Yes' : 'No';
 
         let timerHtml = '';
         if (exp.endTime) {
             timerHtml = `
                 <div class="exp-timer-row">
                     <span style="font-size:11px;color:var(--accent-orange);">⏳ <span class="exp-timer" data-exp-id="${exp.id}">${formatTimeRemaining(exp.endTime)}</span></span>
-                    <button class="refresh-btn-small pin-btn pin-exp-btn" data-exp-id="${exp.id}" title="固定远征计时器">📌</button>
+                    <button class="refresh-btn-small pin-btn pin-exp-btn" data-exp-id="${exp.id}" title="Pin Expedition Timer">📌</button>
                 </div>
             `;
         }
 
         card.innerHTML = `
             <div class="exp-header">
-                <span class="exp-title">📍 ${exp.locationName || '未知'} — ${exp.zoneName || '未知'}</span>
-                <span class="exp-status${statusClass}">${exp.status || '未知'}</span>
+                <span class="exp-title">📍 ${exp.locationName || 'Unknown'} — ${exp.zoneName || 'Unknown'}</span>
+                <span class="exp-status${statusClass}">${exp.status || 'UNKNOWN'}</span>
             </div>
-            <div class="detail-row"><span class="label">雇佣兵：</span> 🧑 ${mercName}</div>
-            <div class="detail-row"><span class="label">总花费：</span> 💰 ${exp.totalCost ? exp.totalCost.toLocaleString() : '--'}</div>
-            <div class="detail-row"><span class="label">保险：</span> ${insurance}</div>
-            <div class="detail-row"><span class="label">风险评分：</span> ${exp.riskScore ?? '--'}</div>
+            <div class="detail-row"><span class="label">Mercenary:</span> 🧑 ${mercName}</div>
+            <div class="detail-row"><span class="label">Total Cost:</span> 💰 ${exp.totalCost ? exp.totalCost.toLocaleString() : '--'}</div>
+            <div class="detail-row"><span class="label">Insurance:</span> ${insurance}</div>
+            <div class="detail-row"><span class="label">Risk Score:</span> ${exp.riskScore ?? '--'}</div>
             ${timerHtml}
         `;
         expeditionInfoContainer.appendChild(card);
@@ -410,23 +418,59 @@ function renderExpeditionInfo(expeditions) {
     });
 }
 
+// Get modifier values (defaults: loot=3, risk=-2)
+let modifiersEnabled = true;
+let savedLootMod = 3;
+let savedRiskMod = -2;
+
+function getLootModifier() {
+    return modifiersEnabled ? savedLootMod : 1;
+}
+function getRiskModifier() {
+    return modifiersEnabled ? savedRiskMod : -1;
+}
+function calcOptionScore(opt, expeditionRiskScore) {
+    const lootMod = getLootModifier();
+    const riskMod = getRiskModifier();
+    return (opt.lootModifier * lootMod) + ((opt.riskModifier * riskMod) * (((expeditionRiskScore + Math.abs(opt.riskModifier)) / 10) || 1)) ;
+}
+function updateModifierDisplayValues() {
+    const lootDisp = document.getElementById('modLootDisplay');
+    const riskDisp = document.getElementById('modRiskDisplay');
+    const defaultsNote = document.getElementById('modDefaultsNote');
+    if (lootDisp) lootDisp.textContent = savedLootMod;
+    if (riskDisp) riskDisp.textContent = savedRiskMod;
+    if (defaultsNote) defaultsNote.style.display = (savedLootMod === 3 && savedRiskMod === -2) ? '' : 'none';
+}
+
 function renderDecisions(decisions) {
     decisionsContainer.innerHTML = '';
+    const countEl = document.getElementById('decisionsCount');
 
     if (!decisions || decisions.length === 0) {
-        decisionsContainer.innerHTML = '<div class="no-decisions">未发现待处理决策。</div>';
+        decisionsContainer.innerHTML = '<div class="no-decisions">No pending decisions found.</div>';
+        if (countEl) countEl.textContent = '';
         return;
     }
+
+    const pending = decisions.filter(d => !d.isResolved);
+    if (countEl) countEl.textContent = pending.length > 0 ? `(${pending.length} pending)` : '';
 
     for (const d of decisions) {
         const card = document.createElement('div');
         card.className = 'decision-card';
 
-        const statusTag = d.isResolved
-            ? '<span class="resolved-tag">已解决</span>'
-            : '<span class="pending-tag">待处理</span>';
+        let statusTag;
+        if (d.isResolved && d.isAutoResolved) {
+            statusTag = '<span class="auto-resolved-tag">AUTO-RESOLVED</span>';
+        } else if (d.isResolved) {
+            statusTag = '<span class="resolved-tag">RESOLVED</span>';
+        } else {
+            statusTag = '<span class="pending-tag">PENDING</span>';
+        }
 
         let deadlineHtml = '';
+        const isExpired = d.decisionDeadline && new Date(d.decisionDeadline) <= new Date();
         if (d.decisionDeadline) {
             const dl = new Date(d.decisionDeadline);
             const now = new Date();
@@ -435,25 +479,35 @@ function renderDecisions(decisions) {
                 const mins = Math.floor(diffMs / 60000);
                 const hrs = Math.floor(mins / 60);
                 const remMins = mins % 60;
-                deadlineHtml = `<div class="deadline">⏳ 截止：剩余 ${hrs}小时 ${remMins}分钟</div>`;
+                deadlineHtml = `<div class="deadline">⏳ Deadline: ${hrs}h ${remMins}m remaining</div>`;
             } else {
-                deadlineHtml = '<div class="deadline">⏳ 截止：已过期</div>';
+                deadlineHtml = '<div class="deadline">⏳ Deadline: Expired</div>';
             }
         }
 
+        const autoChooseOn = autoChooseCheckbox && autoChooseCheckbox.checked;
+        const canClick = !d.isResolved && !isExpired && !autoChooseOn;
         let optionsHtml = '';
         if (Array.isArray(d.decisionOptions)) {
+            // Find default option (first option is typically the default)
+            const defaultOptId = d.decisionOptions.length > 0 ? d.decisionOptions[0].id : null;
             for (const opt of d.decisionOptions) {
                 const isSelected = d.selectedOption === opt.id;
+                const isDefault = (d.isAutoResolved && d.selectedOption === opt.id);
                 const selectedClass = isSelected ? ' option-selected' : '';
+                const clickClass = canClick ? ' clickable' : '';
                 const riskSign = opt.riskModifier > 0 ? '+' : '';
                 const lootSign = opt.lootModifier > 0 ? '+' : '';
+                const score = calcOptionScore(opt, d.riskScore);
+                const scoreHtml = `<span class="option-score">Score: ${score >= 0 ? '+' : ''}${score}</span>`;
+                const selectedLabel = isSelected ? (isDefault ? " (⏳Expired⏳)" : ' ✓') : '';
                 optionsHtml += `
-                    <div class="option-row${selectedClass}">
-                        <span class="option-label">${opt.label}${isSelected ? ' ✓' : ''}</span>
+                    <div class="option-row${selectedClass}${clickClass}" data-opt-id="${opt.id}" data-exp-id="${d.expeditionId}" data-msg-id="${d.messageId}">
+                        <span class="option-label">${opt.label}${selectedLabel}</span>
                         <span class="option-stats">
-                            <span class="stat-risk">风险：${riskSign}${opt.riskModifier}</span>
-                            <span class="stat-loot">战利品：${lootSign}${opt.lootModifier}</span>
+                            ${scoreHtml}
+                            <span class="stat-risk">Risk: ${riskSign}${opt.riskModifier}</span>
+                            <span class="stat-loot">Loot: ${lootSign}${opt.lootModifier}</span>
                         </span>
                     </div>`;
             }
@@ -467,6 +521,76 @@ function renderDecisions(decisions) {
         `;
         decisionsContainer.appendChild(card);
     }
+
+    // Wire up clickable option rows
+    decisionsContainer.querySelectorAll('.option-row.clickable').forEach(el => {
+        el.addEventListener('click', async () => {
+            const optId = el.dataset.optId;
+            const expId = el.dataset.expId;
+            const msgId = el.dataset.msgId;
+            if (!optId || !expId || !msgId) return;
+            el.style.opacity = '0.5';
+            try {
+                const tab = await getCor3Tab();
+                if (tab) {
+                    await chrome.tabs.sendMessage(tab.id, {
+                        action: 'respondDecision',
+                        expeditionId: expId,
+                        messageId: msgId,
+                        selectedOption: optId
+                    });
+                    // Refresh expedition data after a short delay
+                    setTimeout(() => requestExpeditions(), 2000);
+                }
+            } catch (e) { /* not reachable */ }
+        });
+    });
+}
+
+// Auto-choose logic — track decisions we already auto-chose to avoid re-sending
+const autoChosenDecisions = new Set();
+
+async function checkAutoChoose(decisions) {
+    const autoChoose = document.getElementById('autoChooseCheckbox');
+    if (!autoChoose || !autoChoose.checked) return;
+    if (!decisions || decisions.length === 0) return;
+
+    for (const d of decisions) {
+        if (d.isResolved || !d.decisionDeadline || !Array.isArray(d.decisionOptions)) continue;
+        if (autoChosenDecisions.has(d.messageId)) continue; // already sent
+        const dl = new Date(d.decisionDeadline);
+        const remaining = dl - Date.now();
+        if (remaining <= 0) continue; // expired
+        if (remaining > 60000) continue; // wait until < 1 minute remaining
+
+        // Pick highest score
+        let bestOpt = null;
+        let bestScore = -Infinity;
+        for (const opt of d.decisionOptions) {
+            const score = calcOptionScore(opt, d.riskScore);
+            if (score > bestScore) {
+                bestScore = score;
+                bestOpt = opt;
+            }
+        }
+        if (bestOpt) {
+            autoChosenDecisions.add(d.messageId);
+            try {
+                const tab = await getCor3Tab();
+                if (tab) {
+                    await chrome.tabs.sendMessage(tab.id, {
+                        action: 'respondDecision',
+                        expeditionId: d.expeditionId,
+                        messageId: d.messageId,
+                        selectedOption: bestOpt.id
+                    });
+                    console.log(`[COR3 Helper] Auto-chose "${bestOpt.label}" (score: ${bestScore})`);
+                    // Confirm by refreshing expedition data after a delay
+                    setTimeout(() => requestExpeditions(), 3000);
+                }
+            } catch (e) { /* silent */ }
+        }
+    }
 }
 
 async function loadExpeditions() {
@@ -475,10 +599,101 @@ async function loadExpeditions() {
     renderDecisions(expeditionDecisions || []);
     updateExpeditionAlarmOptions(expeditionsData || []);
     refreshAllTimestamps();
+    // check auto-choose
+    checkAutoChoose(expeditionDecisions || []);
 }
 
+// --- Modifier edit/save/cancel/toggle ---
+const lootModInput = document.getElementById('lootModifier');
+const riskModInput = document.getElementById('riskModifier');
+const autoChooseCheckbox = document.getElementById('autoChooseCheckbox');
+const editModifiersBtn = document.getElementById('editModifiersBtn');
+const saveModifiersBtn = document.getElementById('saveModifiersBtn');
+const cancelModifiersBtn = document.getElementById('cancelModifiersBtn');
+const modifierEditRow = document.getElementById('modifierEditRow');
+const modifierDisplay = document.getElementById('modifierDisplay');
+const modifiersEnabledToggle = document.getElementById('modifiersEnabledToggle');
+
+function reRenderDecisions() {
+    chrome.storage.local.get('expeditionDecisions', (result) => {
+        renderDecisions(result.expeditionDecisions || []);
+    });
+}
+
+editModifiersBtn.addEventListener('click', () => {
+    lootModInput.value = savedLootMod;
+    riskModInput.value = savedRiskMod;
+    modifierEditRow.style.display = '';
+    modifierDisplay.style.display = 'none';
+});
+
+saveModifiersBtn.addEventListener('click', () => {
+    savedLootMod = parseInt(lootModInput.value) || 3;
+    savedRiskMod = parseInt(riskModInput.value) || -2;
+    modifierEditRow.style.display = 'none';
+    modifierDisplay.style.display = '';
+    updateModifierDisplayValues();
+    chrome.storage.sync.set({
+        decisionModifiers: {
+            loot: savedLootMod,
+            risk: savedRiskMod,
+            enabled: modifiersEnabled,
+            autoChoose: autoChooseCheckbox.checked
+        }
+    });
+    reRenderDecisions();
+});
+
+cancelModifiersBtn.addEventListener('click', () => {
+    modifierEditRow.style.display = 'none';
+    modifierDisplay.style.display = '';
+});
+
+modifiersEnabledToggle.addEventListener('change', () => {
+    modifiersEnabled = modifiersEnabledToggle.checked;
+    chrome.storage.sync.set({
+        decisionModifiers: {
+            loot: savedLootMod,
+            risk: savedRiskMod,
+            enabled: modifiersEnabled,
+            autoChoose: autoChooseCheckbox.checked
+        }
+    });
+    reRenderDecisions();
+});
+
+autoChooseCheckbox.addEventListener('change', () => {
+    chrome.storage.sync.set({
+        decisionModifiers: {
+            loot: savedLootMod,
+            risk: savedRiskMod,
+            enabled: modifiersEnabled,
+            autoChoose: autoChooseCheckbox.checked
+        }
+    });
+    // Re-render decisions to update clickability and run auto-choose
+    reRenderDecisions();
+    if (autoChooseCheckbox.checked) {
+        chrome.storage.local.get('expeditionDecisions', (result) => {
+            checkAutoChoose(result.expeditionDecisions || []);
+        });
+    }
+});
+
+// Load saved modifier settings
+chrome.storage.sync.get('decisionModifiers', (data) => {
+    if (data.decisionModifiers) {
+        savedLootMod = data.decisionModifiers.loot ?? 3;
+        savedRiskMod = data.decisionModifiers.risk ?? -2;
+        modifiersEnabled = data.decisionModifiers.enabled !== false;
+        autoChooseCheckbox.checked = !!data.decisionModifiers.autoChoose;
+    }
+    modifiersEnabledToggle.checked = modifiersEnabled;
+    updateModifierDisplayValues();
+});
+
 async function requestExpeditions() {
-    expeditionInfoContainer.innerHTML = '<div class="no-decisions">正在加载远征数据...</div>';
+    expeditionInfoContainer.innerHTML = '<div class="no-decisions">Loading expedition data...</div>';
     // Clear old data so poll detects fresh arrival
     await chrome.storage.local.remove(['expeditionsData', 'expeditionDecisions']);
     try {
@@ -501,8 +716,8 @@ async function requestExpeditions() {
         clearInterval(poll);
         if (!loaded) {
             loaded = true;
-            expeditionInfoContainer.innerHTML = '<div class="no-decisions">暂无进行中的远征。</div>';
-            decisionsContainer.innerHTML = '<div class="no-decisions">未发现待处理决策。</div>';
+            expeditionInfoContainer.innerHTML = '<div class="no-decisions">No active expeditions.</div>';
+            decisionsContainer.innerHTML = '<div class="no-decisions">No pending decisions found.</div>';
         }
     }, 5000);
 }
@@ -514,20 +729,17 @@ const inventoryContainer = document.getElementById('inventoryContainer');
 const inventorySectionToggle = document.getElementById('inventorySectionToggle');
 const inventorySectionBody = document.getElementById('inventorySectionBody');
 const spaceInfo = document.getElementById('spaceInfo');
-let inventoryLoaded = false;
+const refreshInventoryBtn = document.getElementById('refreshInventoryBtn');
 
 inventorySectionToggle.addEventListener('click', async () => {
     inventorySectionToggle.classList.toggle('open');
     inventorySectionBody.classList.toggle('open');
-    // Load inventory on first expand
-    if (inventorySectionToggle.classList.contains('open') && !inventoryLoaded) {
-        inventoryLoaded = true;
-        await requestAndLoadInventory();
-    }
 });
 
+refreshInventoryBtn.addEventListener('click', () => requestAndLoadInventory());
+
 async function requestAndLoadInventory() {
-    inventoryContainer.innerHTML = '<div class="no-decisions">正在向服务器请求库存...</div>';
+    inventoryContainer.innerHTML = '<div class="no-decisions">Requesting inventory from server...</div>';
     spaceInfo.textContent = '-- / --';
     try {
         const tab = await getCor3Tab();
@@ -542,11 +754,14 @@ async function loadInventory() {
     renderInventory(stashData);
 }
 
+// Load cached inventory on popup open
+loadInventory();
+
 function renderInventory(data) {
     inventoryContainer.innerHTML = '';
 
     if (!data || !data.items || data.items.length === 0) {
-        inventoryContainer.innerHTML = '<div class="no-decisions">未找到物品。<br>请确保已打开 cor3.gg 标签页。</div>';
+        inventoryContainer.innerHTML = '<div class="no-decisions">No items found.<br>Make sure you have the cor3.gg tab open.</div>';
         spaceInfo.textContent = '-- / --';
         return;
     }
@@ -555,7 +770,6 @@ function renderInventory(data) {
     const max = data.maxCapacity || '?';
     spaceInfo.textContent = `${used} / ${max}`;
 
-    // Calculate total sell value
     let totalSellValue = 0;
     for (const item of data.items) {
         if (item.canSell && item.sellPrice) {
@@ -567,7 +781,18 @@ function renderInventory(data) {
         totalValueEl.textContent = totalSellValue > 0 ? `(💰 ${totalSellValue.toLocaleString()})` : '';
     }
 
-    for (const item of data.items) {
+    // Sort items: rarest first, then most expensive first within same rarity
+    const RARITY_ORDER = { legendary: 0, quest: 1, epic: 2, rare: 3, common: 4 };
+    const sortedItems = [...data.items].sort((a, b) => {
+        const ra = RARITY_ORDER[(a.tier || 'common').toLowerCase()] ?? 5;
+        const rb = RARITY_ORDER[(b.tier || 'common').toLowerCase()] ?? 5;
+        if (ra !== rb) return ra - rb;
+        const pa = (a.canSell && a.sellPrice) ? a.sellPrice : 0;
+        const pb = (b.canSell && b.sellPrice) ? b.sellPrice : 0;
+        return pb - pa;
+    });
+
+    for (const item of sortedItems) {
         const card = document.createElement('div');
         const tierClass = 'tier-' + (item.tier || 'common').toLowerCase();
         card.className = 'item-card ' + tierClass;
@@ -575,10 +800,8 @@ function renderInventory(data) {
         const tierTagClass = 'tier-tag tier-tag-' + (item.tier || 'common').toLowerCase();
 
         let badgesHtml = `<span class="${tierTagClass}">${item.tier || 'COMMON'}</span>`;
-        if (item.canSell) badgesHtml += '<span class="badge badge-sell">出售</span>';
-        if (item.canCraft) badgesHtml += '<span class="badge badge-craft">制作</span>';
-        if (item.canUse) badgesHtml += '<span class="badge badge-use">使用</span>';
-        if (item.canDelete) badgesHtml += '<span class="badge badge-delete">删</span>';
+        if (item.canCraft) badgesHtml += '<span class="badge badge-craft">CRAFT</span>';
+        if (item.canUse) badgesHtml += '<span class="badge badge-use">USE</span>';
 
         const priceHtml = item.canSell && item.sellPrice
             ? `<div class="item-price">💰 ${item.sellPrice.toLocaleString()}</div>`
@@ -612,64 +835,74 @@ let dailyNextTaskTime = null;
 
 function updateDailyTimer() {
     if (!dailyNextTaskTime) {
-        dailyTimerLine.textContent = '⏳ 下次任务： --:--:--';
+        dailyTimerLine.textContent = '⏳ Next Task: --:--:--';
         return;
     }
     const now = Date.now();
     const diff = dailyNextTaskTime - now;
     if (diff <= 0) {
-        dailyTimerLine.textContent = '⏳ 下次任务： 0h:0m:0s';
+        dailyTimerLine.textContent = '⏳ Next Task: 0h:0m:0s';
         return;
     }
     const totalSec = Math.floor(diff / 1000);
     const h = Math.floor(totalSec / 3600);
     const m = Math.floor((totalSec % 3600) / 60);
     const s = totalSec % 60;
-    dailyTimerLine.textContent = `⏳ 下次任务： ${h}h:${m}m:${s}s`;
+    dailyTimerLine.textContent = `⏳ Next Task: ${h}h:${m}m:${s}s`;
+}
+
+// Calculate streak bonus from rewards API data
+function calcStreakBonus(streak, rewardsData) {
+    if (!rewardsData || !Array.isArray(rewardsData) || streak === undefined || streak === null) return '--';
+    // Rewards array contains day entries with amount; find the entry matching current streak day
+    const dayEntry = rewardsData.find(r => r.day === streak);
+    if (dayEntry && dayEntry.amount !== undefined) return (dayEntry.amount / 100).toFixed(2);
+    // Fallback: try closest lower day
+    const sorted = rewardsData.filter(r => r.day <= streak).sort((a, b) => b.day - a.day);
+    if (sorted.length > 0 && sorted[0].amount !== undefined) return (sorted[0].amount / 100).toFixed(2);
+    return '--';
+}
+
+// Shared helper to display daily ops info
+async function displayDailyOpsData(data) {
+    if (!data) return;
+    dailyNextTaskTime = data.nextTaskTime ? new Date(data.nextTaskTime).getTime() : null;
+    dailyClaimed.textContent = data.hasClaimedToday ? 'Yes' : 'No';
+    dailyStreak.textContent = data.currentStreak ?? '--';
+    dailyDifficulty.textContent = data.difficulty ?? '--';
+    // Use rewards API for streak bonus if available
+    const { dailyRewardsData } = await chrome.storage.local.get('dailyRewardsData');
+    const bonus = calcStreakBonus(data.currentStreak, dailyRewardsData);
+    dailyStreakBonus.textContent = bonus;
+    updateDailyTimer();
 }
 
 async function fetchDailyOps() {
     try {
         const tab = await getCor3Tab();
-        if (!tab) throw new Error('未找到 cor3.gg 标签页');
+        if (!tab) throw new Error('No cor3.gg tab');
         const response = await chrome.tabs.sendMessage(tab.id, { action: "fetchDailyOps" });
+        if (response && response.error && (response.error === 'token_expired' || response.error.includes('Invalid access token'))) {
+            dailyTimerLine.innerHTML = '<span style="color:var(--accent-red);font-size:10px;">⚠️ Access token expired. Page refresh required.</span>';
+            return;
+        }
         if (response && response.data) {
-            const data = response.data;
-            dailyNextTaskTime = data.nextTaskTime ? new Date(data.nextTaskTime).getTime() : null;
-            dailyClaimed.textContent = data.hasClaimedToday ? '是' : '否';
-            dailyStreak.textContent = data.currentStreak ?? '--';
-            dailyDifficulty.textContent = data.difficulty ?? '--';
-            dailyStreakBonus.textContent = data.streakBonus ?? '--';
-            updateDailyTimer();
+            await displayDailyOpsData(response.data);
             refreshAllTimestamps();
         } else {
-            // Try from cached storage as fallback
             const { dailyOpsData } = await chrome.storage.local.get('dailyOpsData');
-            if (dailyOpsData) {
-                dailyNextTaskTime = dailyOpsData.nextTaskTime ? new Date(dailyOpsData.nextTaskTime).getTime() : null;
-                dailyClaimed.textContent = dailyOpsData.hasClaimedToday ? '是' : '否';
-                dailyStreak.textContent = dailyOpsData.currentStreak ?? '--';
-                dailyDifficulty.textContent = dailyOpsData.difficulty ?? '--';
-                dailyStreakBonus.textContent = dailyOpsData.streakBonus ?? '--';
-                updateDailyTimer();
-            }
+            if (dailyOpsData) await displayDailyOpsData(dailyOpsData);
         }
     } catch (e) {
-        // Content script not reachable — try cached data
         try {
             const { dailyOpsData } = await chrome.storage.local.get('dailyOpsData');
             if (dailyOpsData) {
-                dailyNextTaskTime = dailyOpsData.nextTaskTime ? new Date(dailyOpsData.nextTaskTime).getTime() : null;
-                dailyClaimed.textContent = dailyOpsData.hasClaimedToday ? '是' : '否';
-                dailyStreak.textContent = dailyOpsData.currentStreak ?? '--';
-                dailyDifficulty.textContent = dailyOpsData.difficulty ?? '--';
-                dailyStreakBonus.textContent = dailyOpsData.streakBonus ?? '--';
-                updateDailyTimer();
+                await displayDailyOpsData(dailyOpsData);
             } else {
-                dailyTimerLine.textContent = '⏳ 下次任务： --:--:--';
+                dailyTimerLine.textContent = '⏳ Next Task: --:--:--';
             }
         } catch (e2) {
-            dailyTimerLine.textContent = '⏳ 下次任务： --:--:--';
+            dailyTimerLine.textContent = '⏳ Next Task: --:--:--';
         }
     }
 }
@@ -677,15 +910,11 @@ async function fetchDailyOps() {
 // Load cached daily ops on popup open (no WS request)
 async function loadCachedDailyOps() {
     try {
-        const { dailyOpsData } = await chrome.storage.local.get('dailyOpsData');
-        if (dailyOpsData) {
-            dailyNextTaskTime = dailyOpsData.nextTaskTime ? new Date(dailyOpsData.nextTaskTime).getTime() : null;
-            dailyClaimed.textContent = dailyOpsData.hasClaimedToday ? '是' : '否';
-            dailyStreak.textContent = dailyOpsData.currentStreak ?? '--';
-            dailyDifficulty.textContent = dailyOpsData.difficulty ?? '--';
-            dailyStreakBonus.textContent = dailyOpsData.streakBonus ?? '--';
-            updateDailyTimer();
+        const { dailyOpsData, dailyOpsError } = await chrome.storage.local.get(['dailyOpsData', 'dailyOpsError']);
+        if (dailyOpsError === 'token_expired') {
+            dailyTimerLine.innerHTML = '<span style="color:var(--accent-red);font-size:10px;">⚠️ Access token expired. Page refresh required.</span>';
         }
+        if (dailyOpsData) await displayDailyOpsData(dailyOpsData);
     } catch (e) {}
 }
 loadCachedDailyOps();
@@ -707,7 +936,7 @@ let darkMarketName = null;
 function formatTimeRemaining(dateStr) {
     if (!dateStr) return '--';
     const diff = new Date(dateStr).getTime() - Date.now();
-    if (diff <= 0) return '已过期';
+    if (diff <= 0) return 'Expired';
     const totalSec = Math.floor(diff / 1000);
     const h = Math.floor(totalSec / 3600);
     const m = Math.floor((totalSec % 3600) / 60);
@@ -733,7 +962,7 @@ function renderMarketInto(container, data, labelPrefix, idPrefix) {
     container.innerHTML = '';
 
     if (!data || !data.market) {
-        container.innerHTML = '<div class="no-decisions">无可用市场数据。<br>请确保已打开 cor3.gg 标签页。</div>';
+        container.innerHTML = '<div class="no-decisions">No market data available.<br>Make sure you have the cor3.gg tab open.</div>';
         return;
     }
 
@@ -745,28 +974,33 @@ function renderMarketInto(container, data, labelPrefix, idPrefix) {
 
     // Credits
     if (md.userCredits !== undefined) {
-        html += `<div style="font-size:11px;color:var(--accent-green);margin-bottom:4px;">💰 积分： ${md.userCredits.toLocaleString()}</div>`;
+        html += `<div style="font-size:11px;color:var(--accent-green);margin-bottom:4px;">💰 Credits: ${md.userCredits.toLocaleString()}</div>`;
     }
 
     // Reputation section
     if (rep) {
         const pct = rep.requiredReputation > 0 ? Math.min(100, Math.floor((rep.progress / rep.requiredReputation) * 100)) : 0;
-        html += `<div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">声望 — 等级 ${rep.level}</div>`;
+        html += `<div style="font-size:11px;color:var(--text-muted);margin-bottom:2px;">Reputation — Level ${rep.level}</div>`;
         html += `<div class="market-rep-bar"><div class="market-rep-fill" style="width:${pct}%"></div></div>`;
         html += `<div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;">`;
-        html += `进度： ${rep.progress}/${rep.requiredReputation} · `;
-        html += `等级锁定： ${rep.isLevelLocked ? '是' : '否'} · `;
-        html += `最高等级： ${rep.isMaxLevel ? '是' : '否'}`;
+        html += `Progress: ${rep.progress}/${rep.requiredReputation} · `;
+        html += `Level Locked: ${rep.isLevelLocked ? 'Yes' : 'No'} · `;
+        html += `Max Level: ${rep.isMaxLevel ? 'Yes' : 'No'}`;
         html += `</div>`;
     }
 
+    const jobCount = md.jobs ? md.jobs.length : 0;
+    const availableJobs = md.jobs ? md.jobs.filter(j => !j.isCompleted && !j.isExpired).length : 0;
+
     // Next jobs reset timer
     if (md.nextJobsResetAt) {
-        html += `<div class="${idPrefix}-reset-timer" style="font-size:11px;color:var(--accent-orange);margin-bottom:8px;">⏳ 任务重置： ${formatTimeRemaining(md.nextJobsResetAt)}</div>`;
+        html += `<div class="${idPrefix}-reset-timer" style="font-size:11px;color:var(--accent-orange);margin-bottom:8px;">⏳ Jobs Reset: ${formatTimeRemaining(md.nextJobsResetAt)} · Jobs: ${availableJobs}/${jobCount}</div>`;
+    } else if (jobCount > 0) {
+        html += `<div style="font-size:11px;color:var(--accent-orange);margin-bottom:8px;">Jobs: ${availableJobs}/${jobCount}</div>`;
     }
 
     // Items List (expandable)
-    html += `<div class="expandable-header" id="${idPrefix}ItemsToggle"><span class="expand-arrow">▶</span><span class="expand-label">物品列表 (${(md.lots || []).length})</span></div>`;
+    html += `<div class="expandable-header" id="${idPrefix}ItemsToggle"><span class="expand-arrow">▶</span><span class="expand-label">Items List (${(md.lots || []).length})</span></div>`;
     html += `<div class="expandable-body" id="${idPrefix}ItemsBody">`;
 
     if (md.lots && md.lots.length > 0) {
@@ -783,29 +1017,97 @@ function renderMarketInto(container, data, labelPrefix, idPrefix) {
             for (const lot of items) {
                 const det = lot.details || {};
                 const isBought = lot.availableCount === 0;
-                const boughtTag = isBought ? '<span class="market-item-bought">已购买</span>' : '';
+                const boughtTag = isBought ? '<span class="market-item-bought">BOUGHT</span>' : '';
                 const imgHtml = det.image ? `<img src="${det.image}" alt="${det.name || ''}" loading="lazy">` : '';
 
                 html += `<div class="market-item-card">`;
                 html += imgHtml;
                 html += `<div class="market-item-info">`;
-                html += `<div class="market-item-name">${det.name || '未知'}${boughtTag}</div>`;
+                html += `<div class="market-item-name">${det.name || 'Unknown'}${boughtTag}</div>`;
                 html += `<div class="market-item-price">💰 ${lot.price ? lot.price.toLocaleString() : '--'}</div>`;
 
                 // Expandable details per item
                 const uid = idPrefix + '_mitem_' + lot.id;
-                html += `<div class="expandable-header" data-expand="${uid}"><span class="expand-arrow">▶</span><span class="expand-label">详情</span></div>`;
+                html += `<div class="expandable-header" data-expand="${uid}"><span class="expand-arrow">▶</span><span class="expand-label">Details</span></div>`;
                 html += `<div class="expandable-body" id="${uid}">`;
-                html += `<div class="detail-row"><span class="label">分类：</span> ${det.category || lot.category || '--'}</div>`;
-                html += `<div class="detail-row"><span class="label">名称：</span> ${det.name || '--'}</div>`;
-                html += `<div class="detail-row"><span class="label">基础价格：</span> ${det.price ? det.price.toLocaleString() : '--'}</div>`;
+                if (det.manufacturer) html += `<div class="detail-row"><span class="label">Manufacturer:</span> ${det.manufacturer}</div>`;
+                if (det.tier) html += `<div class="detail-row"><span class="label">Tier:</span> ${det.tier}</div>`;
+                if (det.itemVulnerability !== undefined) html += `<div class="detail-row"><span class="label">Vulnerability:</span> ${det.itemVulnerability}%</div>`;
+                if (det.price) html += `<div class="detail-row"><span class="label">Base Price:</span> 💰 ${det.price.toLocaleString()}</div>`;
+                if (lot.priceModifier) html += `<div class="detail-row"><span class="label">Price Modifier:</span> ${lot.priceModifier > 0 ? '+' : ''}${lot.priceModifier}</div>`;
+                if (lot.accessLevel) html += `<div class="detail-row"><span class="label">Access Level:</span> ${lot.accessLevel}</div>`;
+                // Specs data
+                if (det.specs && typeof det.specs === 'object') {
+                    // Handle specs that is an array of software objects
+                    if (Array.isArray(det.specs)) {
+                        for (const spec of det.specs) {
+                            if (spec && typeof spec === 'object') {
+                                if (spec.type) html += `<div class="detail-row"><span class="label">Type:</span> ${spec.type}</div>`;
+                                if (spec.power && Array.isArray(spec.power)) html += `<div class="detail-row"><span class="label">Power:</span> ${spec.power[0]} – ${spec.power[1]}</div>`;
+                                if (spec.fileTypes && Array.isArray(spec.fileTypes)) html += `<div class="detail-row"><span class="label">File Types:</span> ${spec.fileTypes.join(', ')}</div>`;
+                                if (spec.serverTypes && Array.isArray(spec.serverTypes)) html += `<div class="detail-row"><span class="label">Server Types:</span> ${spec.serverTypes.join(', ')}</div>`;
+                                if (spec.remote !== undefined) html += `<div class="detail-row"><span class="label">Remote:</span> ${spec.remote ? 'Yes' : 'No'}</div>`;
+                            }
+                        }
+                    } else {
+                        for (const [specKey, specVal] of Object.entries(det.specs)) {
+                            const label = specKey.replace(/([A-Z])/g, ' $1').replace(/^./, s => s.toUpperCase());
+                            let displayVal;
+                            if (Array.isArray(specVal)) {
+                                displayVal = specVal.join(', ');
+                            } else if (specVal !== null && typeof specVal === 'object') {
+                                displayVal = JSON.stringify(specVal);
+                            } else {
+                                displayVal = specVal;
+                            }
+                            html += `<div class="detail-row"><span class="label">${label}:</span> ${displayVal}</div>`;
+                        }
+                    }
+                }
+                if (det.description) html += `<div class="detail-row" style="color:var(--text-dim);font-style:italic;margin-top:2px;">${det.description}</div>`;
                 html += `</div>`;
 
                 html += `</div></div>`;
             }
         }
     } else {
-        html += '<div class="no-decisions">市场中没有物品。</div>';
+        html += '<div class="no-decisions">No items in market.</div>';
+    }
+    html += `</div>`;
+
+    // Jobs List (expandable) - 3 columns: Category, Server, Reward — sorted by server
+    html += `<div class="expandable-header" id="${idPrefix}JobsToggle"><span class="expand-arrow">▶</span><span class="expand-label">Jobs List (${availableJobs}/${jobCount})</span></div>`;
+    html += `<div class="expandable-body" id="${idPrefix}JobsBody">`;
+    if (md.jobs && md.jobs.length > 0) {
+        // Sort jobs by server name
+        const sortedJobs = [...md.jobs].sort((a, b) => {
+            const sA = (a.relatedServers && a.relatedServers[0] ? a.relatedServers[0].serverName : '') || '';
+            const sB = (b.relatedServers && b.relatedServers[0] ? b.relatedServers[0].serverName : '') || '';
+            return sA.localeCompare(sB);
+        });
+        html += `<table style="width:100%;font-size:10px;border-collapse:collapse;margin-bottom:4px;">`;
+        html += `<tr style="color:var(--text-dim);border-bottom:1px solid var(--border);"><th style="text-align:left;padding:3px 4px;">Job</th><th style="text-align:left;padding:3px 4px;">Server</th><th style="text-align:right;padding:3px 4px;">Reward</th></tr>`;
+        for (const job of sortedJobs) {
+            const jobStatus = job.isCompleted ? '✅' : job.isExpired ? '❌' : '🔹';
+            const dimStyle = (job.isCompleted || job.isExpired) ? 'opacity:0.5;' : '';
+            const jobName = job.name || job.id || 'Unknown';
+            const serverName = (job.relatedServers && job.relatedServers[0]) ? job.relatedServers[0].serverName : 'N/A';
+            let rewardStr = '--';
+            if (job.rewardCredits) {
+                rewardStr = `💰 ${job.rewardCredits.toLocaleString()}`;
+            }
+            if (job.rewardReputation) {
+                rewardStr += ` · ⭐ ${job.rewardReputation}`;
+            }
+            html += `<tr style="${dimStyle}border-bottom:1px solid var(--border);">`;
+            html += `<td style="padding:3px 4px;color:var(--text-secondary);">${jobStatus} ${jobName}</td>`;
+            html += `<td style="padding:3px 4px;color:var(--text-muted);">${serverName}</td>`;
+            html += `<td style="padding:3px 4px;text-align:right;color:var(--accent-green);">${rewardStr}</td>`;
+            html += `</tr>`;
+        }
+        html += `</table>`;
+    } else {
+        html += '<div class="no-decisions">No jobs available.</div>';
     }
     html += `</div>`;
 
@@ -833,7 +1135,7 @@ function renderMarket(data) {
         coreMarketName = data.market.marketName;
         updateMarketLabel(coreMarketLabel, coreMarketName, 'Market-1', '🏠');
         // Update alarm dropdown option text and alarm list labels
-        TIMER_LABELS.home_jobs = coreMarketName + ' 任务重置';
+        TIMER_LABELS.home_jobs = coreMarketName + ' Jobs Reset';
         const opt = alarmTimerSelect.querySelector('option[value="home_jobs"]');
         if (opt) opt.textContent = TIMER_LABELS.home_jobs;
         // Re-render pinned timers and alarm list to update labels
@@ -845,7 +1147,20 @@ function renderMarket(data) {
 
 function renderDarkMarket(data, available) {
     if (available === false) {
-        darkMarketContainer.innerHTML = '<div class="no-decisions" style="color:var(--accent-red);">⚠️ Market-2 当前不可用。<br>无法连接到端点服务器。</div>';
+        // Show warning but keep cached data visible below
+        let warningHtml = '<div class="warning-banner">⚠️ D4RK market server is currently unreachable (no-path-to-server).</div>';
+        if (data && data.market) {
+            // Render cached data below the warning
+            if (data.nextJobsResetAt) bmiNextJobsResetAt = data.nextJobsResetAt;
+            if (data.market.marketName) {
+                darkMarketName = data.market.marketName;
+                updateMarketLabel(darkMarketLabel, darkMarketName, 'Market-2', '🌑');
+            }
+            renderMarketInto(darkMarketContainer, data, 'Market-2 (cached)', 'dark');
+            darkMarketContainer.insertAdjacentHTML('afterbegin', warningHtml);
+        } else {
+            darkMarketContainer.innerHTML = warningHtml + '<div class="no-decisions">No cached market data available.</div>';
+        }
         return;
     }
     if (data && data.nextJobsResetAt) bmiNextJobsResetAt = data.nextJobsResetAt;
@@ -854,7 +1169,7 @@ function renderDarkMarket(data, available) {
         darkMarketName = data.market.marketName;
         updateMarketLabel(darkMarketLabel, darkMarketName, 'Market-2', '🌑');
         // Update alarm dropdown option text and alarm list labels
-        TIMER_LABELS.dark_jobs = darkMarketName + ' 任务重置';
+        TIMER_LABELS.dark_jobs = darkMarketName + ' Jobs Reset';
         const opt = alarmTimerSelect.querySelector('option[value="dark_jobs"]');
         if (opt) opt.textContent = TIMER_LABELS.dark_jobs;
         // Re-render pinned timers and alarm list to update labels
@@ -876,8 +1191,8 @@ async function loadDarkMarket() {
 
 // Request both markets — just sends get.options, no room joins needed
 async function requestMarketData() {
-    marketContainer.innerHTML = '<div class="no-decisions">正在请求市场数据...</div>';
-    darkMarketContainer.innerHTML = '<div class="no-decisions">正在请求市场数据...</div>';
+    marketContainer.innerHTML = '<div class="no-decisions">Requesting market data...</div>';
+    darkMarketContainer.innerHTML = '<div class="no-decisions">Requesting market data...</div>';
     await chrome.storage.local.remove(['marketData', 'darkMarketData', 'darkMarketAvailable']);
     try {
         const tab = await getCor3Tab();
@@ -918,10 +1233,10 @@ async function requestMarketData() {
 }
 
 async function refreshMarketData() {
-    marketContainer.innerHTML = '<div class="no-decisions">正在刷新市场数据...</div>';
+    marketContainer.innerHTML = '<div class="no-decisions">Refreshing market data...</div>';
     try {
         const tab = await getCor3Tab();
-        if (!tab) throw new Error('未找到 cor3.gg 标签页');
+        if (!tab) throw new Error('No cor3.gg tab');
         await chrome.tabs.sendMessage(tab.id, { action: "refreshMarket" });
         setTimeout(() => { loadMarket(); refreshAllTimestamps(); }, 3000);
     } catch (e) {
@@ -932,10 +1247,10 @@ async function refreshMarketData() {
 refreshMarketBtn.addEventListener('click', () => refreshMarketData());
 
 async function refreshDarkMarketData() {
-    darkMarketContainer.innerHTML = '<div class="no-decisions">正在刷新市场数据...</div>';
+    darkMarketContainer.innerHTML = '<div class="no-decisions">Refreshing market data...</div>';
     try {
         const tab = await getCor3Tab();
-        if (!tab) throw new Error('未找到 cor3.gg 标签页');
+        if (!tab) throw new Error('No cor3.gg tab');
         await chrome.tabs.sendMessage(tab.id, { action: "refreshDarkMarket" });
         setTimeout(() => { loadDarkMarket(); refreshAllTimestamps(); }, 3000);
     } catch (e) {
@@ -952,26 +1267,26 @@ chrome.storage.local.get(['marketData', 'darkMarketData', 'darkMarketAvailable']
         if (result.marketData.market && result.marketData.market.marketName) {
             coreMarketName = result.marketData.market.marketName;
             updateMarketLabel(coreMarketLabel, coreMarketName, 'Market-1', '🏠');
-            TIMER_LABELS.home_jobs = coreMarketName + ' 任务重置';
+            TIMER_LABELS.home_jobs = coreMarketName + ' Jobs Reset';
             const opt = alarmTimerSelect.querySelector('option[value="home_jobs"]');
             if (opt) opt.textContent = TIMER_LABELS.home_jobs;
         }
         renderMarket(result.marketData);
     } else {
-        marketContainer.innerHTML = '<div class="no-decisions">未缓存市场数据。点击 🔄 刷新。</div>';
+        marketContainer.innerHTML = '<div class="no-decisions">No market data cached. Click 🔄 to refresh.</div>';
     }
     if (result.darkMarketData) {
         if (result.darkMarketData.nextJobsResetAt) bmiNextJobsResetAt = result.darkMarketData.nextJobsResetAt;
         if (result.darkMarketData.market && result.darkMarketData.market.marketName) {
             darkMarketName = result.darkMarketData.market.marketName;
             updateMarketLabel(darkMarketLabel, darkMarketName, 'Market-2', '🌑');
-            TIMER_LABELS.dark_jobs = darkMarketName + ' 任务重置';
+            TIMER_LABELS.dark_jobs = darkMarketName + ' Jobs Reset';
             const opt = alarmTimerSelect.querySelector('option[value="dark_jobs"]');
             if (opt) opt.textContent = TIMER_LABELS.dark_jobs;
         }
         renderDarkMarket(result.darkMarketData, result.darkMarketAvailable);
     } else {
-        darkMarketContainer.innerHTML = '<div class="no-decisions">未缓存市场数据。点击 🔄 刷新。</div>';
+        darkMarketContainer.innerHTML = '<div class="no-decisions">No market data cached. Click 🔄 to refresh.</div>';
     }
 });
 
@@ -994,6 +1309,12 @@ refreshAllBtn.addEventListener('click', async () => {
         await requestMarketData();
         // 3. Expeditions (after markets done)
         await requestExpeditions();
+        // 4. Archived expeditions
+        requestArchivedExpeditions();
+        // 5. Inventory
+        requestAndLoadInventory();
+        // 6. Mercenaries
+        requestMercenaries();
     } catch (e) {}
     refreshAllBtn.classList.remove('spinning');
     isRefreshing = false;
@@ -1049,7 +1370,7 @@ function renderPinnedTimers() {
         const row = document.createElement('div');
         row.className = 'pinned-timer-row';
         row.innerHTML = `
-            <span class="pinned-timer-label">📅 每日任务</span>
+            <span class="pinned-timer-label">📅 Daily Ops</span>
             <span class="pinned-timer-value" id="pinnedDailyValue">--:--:--</span>
         `;
         pinnedTimersContainer.appendChild(row);
@@ -1059,10 +1380,10 @@ function renderPinnedTimers() {
         const row = document.createElement('div');
         row.className = 'pinned-timer-row';
         row.innerHTML = `
-            <span class="pinned-timer-label">🏠 ${name} 任务</span>
+            <span class="pinned-timer-label">🏠 ${name} Jobs</span>
             <span class="pinned-timer-value" id="pinnedCoreJobsValue">--:--:--</span>
-            <label class="pinned-auto-refresh" title="当计时器归零时自动刷新任务">
-                <input type="checkbox" id="autoRefreshCore" ${autoRefresh.home_jobs ? 'checked' : ''}> 自动
+            <label class="pinned-auto-refresh" title="Auto-refresh jobs when timer hits 0">
+                <input type="checkbox" id="autoRefreshCore" ${autoRefresh.home_jobs ? 'checked' : ''}> Auto
             </label>
         `;
         pinnedTimersContainer.appendChild(row);
@@ -1077,10 +1398,10 @@ function renderPinnedTimers() {
         const row = document.createElement('div');
         row.className = 'pinned-timer-row';
         row.innerHTML = `
-            <span class="pinned-timer-label">🌑 ${name} 任务</span>
+            <span class="pinned-timer-label">🌑 ${name} Jobs</span>
             <span class="pinned-timer-value" id="pinnedDarkJobsValue">--:--:--</span>
-            <label class="pinned-auto-refresh" title="当计时器归零时自动刷新任务">
-                <input type="checkbox" id="autoRefreshDark" ${autoRefresh.dark_jobs ? 'checked' : ''}> 自动
+            <label class="pinned-auto-refresh" title="Auto-refresh jobs when timer hits 0">
+                <input type="checkbox" id="autoRefreshDark" ${autoRefresh.dark_jobs ? 'checked' : ''}> Auto
             </label>
         `;
         pinnedTimersContainer.appendChild(row);
@@ -1097,7 +1418,7 @@ function renderPinnedTimers() {
         const expId = key.substring(4);
         const endTime = expeditionEndTimes[expId];
         // Try to get expedition name from stored data
-        let expLabel = '远征';
+        let expLabel = 'Expedition';
         // We'll resolve the name asynchronously, but for now use cached data
         const row = document.createElement('div');
         row.className = 'pinned-timer-row';
@@ -1136,7 +1457,7 @@ function renderPinnedTimers() {
             if (exp.endTime) expeditionEndTimes[exp.id] = exp.endTime;
             const labelEl = pinnedTimersContainer.querySelector(`.pinned-exp-label[data-exp-id="${exp.id}"]`);
             if (labelEl) {
-                labelEl.textContent = `${exp.locationName || '远征'} — ${exp.zoneName || ''}`;
+                labelEl.textContent = `${exp.locationName || 'Expedition'} — ${exp.zoneName || ''}`;
             }
         }
     });
@@ -1276,13 +1597,13 @@ setInterval(() => {
     if (coreNextJobsResetAt) {
         const homeResetEl = marketContainer.querySelector('.home-reset-timer');
         if (homeResetEl) {
-            homeResetEl.textContent = `⏳ 任务重置： ${formatTimeRemaining(coreNextJobsResetAt)}`;
+            homeResetEl.textContent = `⏳ Jobs Reset: ${formatTimeRemaining(coreNextJobsResetAt)}`;
         }
     }
     if (bmiNextJobsResetAt) {
         const darkResetEl = darkMarketContainer.querySelector('.dark-reset-timer');
         if (darkResetEl) {
-            darkResetEl.textContent = `⏳ 任务重置： ${formatTimeRemaining(bmiNextJobsResetAt)}`;
+            darkResetEl.textContent = `⏳ Jobs Reset: ${formatTimeRemaining(bmiNextJobsResetAt)}`;
         }
     }
 
@@ -1303,12 +1624,31 @@ setInterval(() => {
 // Refresh "last updated" labels every 30s
 setInterval(() => refreshAllTimestamps(), 30000);
 
+// --- Real-time auto-update: listen for storage changes from WS data arriving ---
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (changes.expeditionsData) {
+        loadExpeditions();
+        refreshAllTimestamps();
+    }
+    if (changes.stashData) {
+        loadInventory();
+        refreshAllTimestamps();
+    }
+    if (changes.archivedExpeditionsData) {
+        loadArchivedExpeditions();
+    }
+    if (changes.mercenariesData || changes.mercConfigData) {
+        loadMercenaries();
+    }
+});
+
 // --- Auto Decrypt Hacking ---
 const autoDecryptToggle = document.getElementById('autoDecryptToggle');
 const decryptStatus = document.getElementById('decryptStatus');
 
 function updateDecryptStatusLabel(enabled) {
-    decryptStatus.textContent = enabled ? '已启用' : '关闭';
+    decryptStatus.textContent = enabled ? 'Active' : 'Off';
     decryptStatus.style.color = enabled ? 'var(--accent-green)' : 'var(--text-dim)';
 }
 
@@ -1334,30 +1674,467 @@ autoDecryptToggle.addEventListener('change', async () => {
     }
 });
 
+// --- Auto Daily Hacking ---
+const autoDailyHackToggle = document.getElementById('autoDailyHackToggle');
+const dailyHackStatus = document.getElementById('dailyHackStatus');
+const dailyHackLogEl = document.getElementById('dailyHackLog');
+
+function updateDailyHackStatusLabel(enabled) {
+    dailyHackStatus.textContent = enabled ? 'Active' : 'Off';
+    dailyHackStatus.style.color = enabled ? 'var(--accent-green)' : 'var(--text-dim)';
+}
+
+// Load saved state and show persisted daily hack log
+chrome.storage.sync.get('autoDailyHackEnabled', (data) => {
+    const enabled = !!data.autoDailyHackEnabled;
+    autoDailyHackToggle.checked = enabled;
+    updateDailyHackStatusLabel(enabled);
+});
+// Always show the last daily hack result from storage until a new hack updates it
+chrome.storage.local.get(['dailyHackLog', 'dailyHackLogUpdatedAt'], (data) => {
+    if (data.dailyHackLog && dailyHackLogEl && autoDailyHackToggle.checked) {
+        dailyHackLogEl.textContent = data.dailyHackLog;
+        dailyHackLogEl.style.display = '';
+    }
+});
+
+autoDailyHackToggle.addEventListener('change', async () => {
+    const enabled = autoDailyHackToggle.checked;
+    await chrome.storage.sync.set({ autoDailyHackEnabled: enabled });
+    updateDailyHackStatusLabel(enabled);
+
+    // Don't clear the log when toggling — keep showing old result until new hack
+
+    // Send toggle to content script
+    const tab = await getCor3Tab();
+    if (tab) {
+        chrome.tabs.sendMessage(tab.id, {
+            action: "toggleDailyHackSolver",
+            enabled: enabled
+        }).catch(() => {});
+    }
+});
+
+// Listen for daily hack log updates (Signal Hack console output)
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (changes.dailyHackLog) {
+        const msg = changes.dailyHackLog.newValue;
+        if (msg && dailyHackLogEl && autoDailyHackToggle.checked) {
+            dailyHackLogEl.textContent = msg;
+            dailyHackLogEl.style.display = '';
+        }
+    }
+});
+
+// Version Info ---
+async function displayVersionInfo() {
+    const versionSection = document.getElementById('versionInfoSection');
+    if (!versionSection) return;
+    const extVersion = chrome.runtime.getManifest().version;
+    const { webVersion, systemVersion } = await chrome.storage.local.get(['webVersion', 'systemVersion']);
+    let parts = [`Extension: v${extVersion}`];
+    if (webVersion) parts.push(`Web: ${webVersion}`);
+    if (systemVersion) parts.push(`System: ${systemVersion}`);
+    versionSection.innerHTML = parts.join(' · ');
+    versionSection.style.display = 'block';
+}
+displayVersionInfo();
+
+// Auto-check GitHub for web/system version differences on popup load
+async function autoCheckWebsiteUpdated() {
+    const notice = document.getElementById('websiteUpdatedNotice');
+    if (!notice) return;
+    try {
+        const resp = await fetch('https://raw.githubusercontent.com/Femtoce11/cor3-helper/main/versions.json', { cache: 'no-store' });
+        if (!resp.ok) return;
+        const remote = await resp.json();
+        const { webVersion, systemVersion } = await chrome.storage.local.get(['webVersion', 'systemVersion']);
+
+        let updated = false;
+        const localWeb = webVersion ? String(webVersion).replace(/^v/, '') : null;
+        const remoteWeb = remote.web ? String(remote.web).replace(/^v/, '') : null;
+        if (remoteWeb && localWeb && remoteWeb !== localWeb) updated = true;
+        const localSys = systemVersion ? String(systemVersion).trim() : null;
+        const remoteSys = remote.system ? String(remote.system).trim() : null;
+        if (remoteSys && localSys && remoteSys !== localSys) updated = true;
+
+        if (updated) {
+            notice.textContent = '⚠️ Website is recently updated';
+            notice.style.display = 'block';
+        } else {
+            notice.style.display = 'none';
+        }
+    } catch (e) { /* silent */ }
+}
+autoCheckWebsiteUpdated();
+
+// Auto-update version display when web/system version arrives
+chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (changes.webVersion || changes.systemVersion) {
+        displayVersionInfo();
+        autoCheckWebsiteUpdated();
+    }
+});
+
+// Archived Expeditions ---
+const archivedExpSectionToggle = document.getElementById('archivedExpSectionToggle');
+const archivedExpSectionBody = document.getElementById('archivedExpSectionBody');
+const archivedExpContainer = document.getElementById('archivedExpContainer');
+const refreshArchivedBtn = document.getElementById('refreshArchivedBtn');
+
+archivedExpSectionToggle.addEventListener('click', () => {
+    archivedExpSectionToggle.classList.toggle('open');
+    archivedExpSectionBody.classList.toggle('open');
+});
+
+async function requestArchivedExpeditions() {
+    archivedExpContainer.innerHTML = '<div class="no-decisions">Loading archived expeditions...</div>';
+    try {
+        const tab = await getCor3Tab();
+        if (tab) await chrome.tabs.sendMessage(tab.id, { action: "requestArchivedExpeditions" });
+    } catch (e) { /* not reachable */ }
+    setTimeout(() => loadArchivedExpeditions(), 3000);
+}
+
+if (refreshArchivedBtn) {
+    refreshArchivedBtn.addEventListener('click', () => requestArchivedExpeditions());
+}
+
+async function loadArchivedExpeditions() {
+    const { archivedExpeditionsData } = await chrome.storage.local.get('archivedExpeditionsData');
+    renderArchivedExpeditions(archivedExpeditionsData);
+    refreshAllTimestamps();
+}
+
+function renderArchivedExpeditions(data) {
+    if (!archivedExpContainer) return;
+    archivedExpContainer.innerHTML = '';
+
+    // Handle both array and object with items array
+    let items = data;
+    if (data && !Array.isArray(data) && data.items) items = data.items;
+    if (data && !Array.isArray(data) && data.data) items = data.data;
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+        archivedExpContainer.innerHTML = '<div class="no-decisions">No archived expeditions found.</div>';
+        return;
+    }
+    for (const exp of items) {
+        const card = document.createElement('div');
+        card.className = 'archived-exp-card';
+
+        const mercName = exp.mercenary ? exp.mercenary.callsign : 'Unknown';
+        const outcome = (exp.outcome || exp.status || 'COMPLETED').toUpperCase();
+        let outcomeClass = 'outcome-full';
+        if (outcome.includes('PARTIAL')) outcomeClass = 'outcome-partial';
+        else if (outcome.includes('FAIL') || outcome.includes('LOSS')) outcomeClass = 'outcome-fail';
+
+        let html = `<div class="archived-exp-header">`;
+        html += `<span class="archived-exp-merc">🧑 ${mercName}</span>`;
+        html += `<span class="outcome-tag ${outcomeClass}">${outcome}</span>`;
+        html += `</div>`;
+        html += `<div class="archived-exp-info">`;
+        html += `📍 ${exp.locationName || '--'} / ${exp.zoneName || '--'}`;
+        if (exp.objectiveName) html += ` — ${exp.objectiveName}`;
+        html += `<br>`;
+        if (exp.totalCost !== undefined) html += `💰 Cost: ${exp.totalCost.toLocaleString()} · `;
+        if (exp.riskScore !== undefined) html += `⚠️ Risk: ${exp.riskScore}`;
+        html += `</div>`;
+
+        // Container items with images — containerData can be flat array or object with .items
+        const rawContainer = exp.containerData || exp.container;
+        const containerItems = Array.isArray(rawContainer) ? rawContainer
+            : (rawContainer && Array.isArray(rawContainer.items) ? rawContainer.items : null);
+        if (containerItems && containerItems.length > 0) {
+            const uid = 'archived_' + exp.id;
+            html += `<div class="container-items">`;
+            html += `<div class="expandable-header" data-expand="${uid}"><span class="expand-arrow">▶</span><span class="expand-label">Loot (${containerItems.length} items)</span></div>`;
+            html += `<div class="expandable-body" id="${uid}">`;
+            for (const ci of containerItems) {
+                const det = ci.item || ci;
+                const imgSrc = det.imageUrl || det.image || '';
+                const imgTag = imgSrc ? `<img src="${imgSrc}" style="width:24px;height:24px;border-radius:4px;vertical-align:middle;margin-right:4px;" loading="lazy">` : '';
+                const tierTag = det.tier ? ` <span class="tier-tag tier-tag-${det.tier.toLowerCase()}">${det.tier}</span>` : '';
+                let statusTag = '';
+                if (det.isCollected) statusTag = ' <span style="color:var(--accent-green);font-size:9px;">✓ Collected</span>';
+                else if (det.isDeleted) statusTag = ' <span style="color:var(--accent-red);font-size:9px;">✗ Deleted</span>';
+                html += `<div style="font-size:10px;margin:2px 0;">${imgTag}${det.name || det.id || '?'}${tierTag}${statusTag}</div>`;
+            }
+            html += `</div></div>`;
+        }
+
+        card.innerHTML = html;
+        archivedExpContainer.appendChild(card);
+    }
+    // Wire expandable toggles
+    archivedExpContainer.querySelectorAll('.expandable-header').forEach(hdr => {
+        hdr.addEventListener('click', () => {
+            hdr.classList.toggle('open');
+            const targetId = hdr.getAttribute('data-expand');
+            const body = document.getElementById(targetId);
+            if (body) body.classList.toggle('open');
+        });
+    });
+}
+
+// Auto-load archived expeditions from cache on popup open
+loadArchivedExpeditions();
+
+// --- Mercenaries ---
+const mercenariesSectionToggle = document.getElementById('mercenariesSectionToggle');
+const mercenariesSectionBody = document.getElementById('mercenariesSectionBody');
+const mercenariesContainer = document.getElementById('mercenariesContainer');
+const refreshMercenariesBtn = document.getElementById('refreshMercenariesBtn');
+const autoSendMercenaryToggle = document.getElementById('autoSendMercenaryToggle');
+const autoChooseMercToggle = document.getElementById('autoChooseMercToggle');
+const mercenaryConfigRow = document.getElementById('mercenaryConfigRow');
+const selectedMercenaryName = document.getElementById('selectedMercenaryName');
+
+let selectedMercenaryId = null;
+let mercRestTimers = {};
+
+mercenariesSectionToggle.addEventListener('click', () => {
+    mercenariesSectionToggle.classList.toggle('open');
+    mercenariesSectionBody.classList.toggle('open');
+});
+
+async function requestMercenaries() {
+    mercenariesContainer.innerHTML = '<div class="no-decisions">Loading mercenaries...</div>';
+    try {
+        const tab = await getCor3Tab();
+        if (tab) await chrome.tabs.sendMessage(tab.id, { action: "requestMercenaries" });
+    } catch (e) { /* not reachable */ }
+    setTimeout(() => loadMercenaries(), 3000);
+}
+
+if (refreshMercenariesBtn) {
+    refreshMercenariesBtn.addEventListener('click', () => requestMercenaries());
+}
+
+// Load/save auto-send settings
+chrome.storage.sync.get('autoSendMerc', (data) => {
+    if (data.autoSendMerc) {
+        autoSendMercenaryToggle.checked = !!data.autoSendMerc.enabled;
+        if (autoChooseMercToggle) autoChooseMercToggle.checked = !!data.autoSendMerc.autoChooseMerc;
+        selectedMercenaryId = data.autoSendMerc.mercenaryId || null;
+        if (selectedMercenaryId && mercenaryConfigRow) {
+            mercenaryConfigRow.style.display = '';
+            if (selectedMercenaryName) selectedMercenaryName.textContent = data.autoSendMerc.mercenaryName || selectedMercenaryId;
+        }
+    }
+});
+
+function saveAutoSendMercSettings() {
+    chrome.storage.sync.set({
+        autoSendMerc: {
+            enabled: autoSendMercenaryToggle.checked,
+            autoChooseMerc: autoChooseMercToggle ? autoChooseMercToggle.checked : false,
+            mercenaryId: selectedMercenaryId,
+            mercenaryName: selectedMercenaryName ? selectedMercenaryName.textContent : ''
+        }
+    });
+}
+
+autoSendMercenaryToggle.addEventListener('change', () => saveAutoSendMercSettings());
+
+if (autoChooseMercToggle) {
+    autoChooseMercToggle.addEventListener('change', () => {
+        saveAutoSendMercSettings();
+        // Re-render mercenaries to update clickability
+        loadMercenaries();
+    });
+}
+
+async function loadMercenaries() {
+    const { mercenariesData, mercConfigData } = await chrome.storage.local.get(['mercenariesData', 'mercConfigData']);
+    // Attach expedition config data to each mercenary if available
+    if (mercenariesData && mercConfigData) {
+        let mercs = mercenariesData;
+        if (mercs && !Array.isArray(mercs) && mercs.mercenaries) mercs = mercs.mercenaries;
+        if (mercs && !Array.isArray(mercs) && mercs.data) mercs = mercs.data;
+        if (Array.isArray(mercs)) {
+            for (const merc of mercs) {
+                if (mercConfigData[merc.id]) {
+                    merc._expeditionConfig = mercConfigData[merc.id];
+                }
+            }
+        }
+    }
+    renderMercenaries(mercenariesData);
+    refreshAllTimestamps();
+}
+
+function renderMercenaries(data) {
+    if (!mercenariesContainer) return;
+    mercenariesContainer.innerHTML = '';
+
+    let mercs = data;
+    if (data && !Array.isArray(data) && data.mercenaries) mercs = data.mercenaries;
+    if (data && !Array.isArray(data) && data.data) mercs = data.data;
+
+    if (!mercs || !Array.isArray(mercs) || mercs.length === 0) {
+        mercenariesContainer.innerHTML = '<div class="no-decisions">No mercenaries found.</div>';
+        return;
+    }
+
+    // Auto-choose: select cheapest AVAILABLE mercenary (least risk on tie)
+    if (autoChooseMercToggle && autoChooseMercToggle.checked) {
+        const available = mercs.filter(m => m.status === 'AVAILABLE' && m._expeditionConfig);
+        if (available.length > 0) {
+            available.sort((a, b) => {
+                const costA = (a._expeditionConfig && a._expeditionConfig.totalCost) || Infinity;
+                const costB = (b._expeditionConfig && b._expeditionConfig.totalCost) || Infinity;
+                if (costA !== costB) return costA - costB;
+                const riskA = (a._expeditionConfig && a._expeditionConfig.riskScore) || 0;
+                const riskB = (b._expeditionConfig && b._expeditionConfig.riskScore) || 0;
+                return riskA - riskB;
+            });
+            selectedMercenaryId = available[0].id;
+            if (selectedMercenaryName) selectedMercenaryName.textContent = available[0].callsign || available[0].name || available[0].id;
+            if (mercenaryConfigRow) mercenaryConfigRow.style.display = '';
+            saveAutoSendMercSettings();
+        }
+    }
+
+    for (const merc of mercs) {
+        const card = document.createElement('div');
+        card.className = 'merc-card' + (selectedMercenaryId === merc.id ? ' selected' : '');
+        card.dataset.mercId = merc.id;
+
+        const status = (merc.status || 'AVAILABLE').toUpperCase();
+        let statusClass = 'available';
+        if (status === 'RESTING') statusClass = 'resting';
+        else if (status === 'CONTRACTED') statusClass = 'contracted';
+
+        let restTimer = '';
+        if (status === 'RESTING' && merc.restUntil) {
+            const restEnd = new Date(merc.restUntil).getTime();
+            const now = Date.now();
+            const diff = restEnd - now;
+            if (diff > 0) {
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                restTimer = `<span class="merc-rest-timer">⏳ ${h}h ${m}m</span>`;
+                mercRestTimers[merc.id] = merc.restUntil;
+            }
+        }
+
+        const specName = merc.specializationName || merc.specialization || '--';
+        const specDesc = merc.specializationDescription || '';
+        const traitName = merc.traitName || merc.trait || '--';
+        const traitDesc = merc.traitDescription || '';
+
+        let html = `<div class="merc-details">`;
+        html += `<div class="merc-name">${merc.callsign || merc.name || 'Unknown'}</div>`;
+        html += `<div style="margin-bottom:4px;"><span class="merc-status ${statusClass}">${status}</span>${restTimer}</div>`;
+        html += `<div class="merc-info">`;
+        html += `Rank: ${merc.rank || '--'} · Missions: ${merc.missionsCompleted ?? '--'}<br>`;
+        html += `Spec: <b>${specName}</b>`;
+        if (specDesc) html += ` <span style="color:var(--text-dim);font-size:9px;">— ${specDesc}</span>`;
+        html += `<br>Trait: <b>${traitName}</b>`;
+        if (traitDesc) html += ` <span style="color:var(--text-dim);font-size:9px;">— ${traitDesc}</span>`;
+        if (merc.reputationRequirement) html += `<br>Rep Required: ${merc.reputationRequirement}`;
+        // Extended expedition config info (from configure call)
+        const cfg = merc._expeditionConfig;
+        if (cfg) {
+            html += `<br><span style="color:var(--accent-orange);">Cost: 💰 ${(cfg.totalCost || 0).toLocaleString()}</span>`;
+            html += ` · <span style="color:var(--accent-cyan);">Risk: ${cfg.riskScore ?? '--'}</span>`;
+            if (cfg.outcomeChances) {
+                html += `<br>Failed-Survive: ${cfg.outcomeChances.failureSurviveChance ?? '--'}%`;
+                html += ` · Death: ${cfg.outcomeChances.deathChance ?? '--'}%`;
+            }
+        }
+        html += `</div></div>`;
+
+        card.innerHTML = html;
+
+        // Click to select mercenary for auto-send (disabled when auto-choose merc is on)
+        card.addEventListener('click', () => {
+            if (autoChooseMercToggle && autoChooseMercToggle.checked) return;
+            selectedMercenaryId = merc.id;
+            if (selectedMercenaryName) selectedMercenaryName.textContent = merc.callsign || merc.name || merc.id;
+            if (mercenaryConfigRow) mercenaryConfigRow.style.display = '';
+            // Update visual selection
+            mercenariesContainer.querySelectorAll('.merc-card').forEach(c => c.classList.remove('selected'));
+            card.classList.add('selected');
+            // Save
+            saveAutoSendMercSettings();
+        });
+
+        mercenariesContainer.appendChild(card);
+    }
+}
+
+// Auto-load mercenaries from cache on popup open
+loadMercenaries();
+
+// Update mercenary rest timers every second
+setInterval(() => {
+    for (const [mercId, restUntil] of Object.entries(mercRestTimers)) {
+        const diff = new Date(restUntil).getTime() - Date.now();
+        const el = mercenariesContainer.querySelector(`.merc-card[data-merc-id="${mercId}"] .merc-rest-timer`);
+        if (el) {
+            if (diff > 0) {
+                const h = Math.floor(diff / 3600000);
+                const m = Math.floor((diff % 3600000) / 60000);
+                el.textContent = `⏳ ${h}h ${m}m`;
+            } else {
+                el.textContent = 'Ready!';
+                el.style.color = 'var(--accent-green)';
+                delete mercRestTimers[mercId];
+            }
+        }
+    }
+}, 1000);
+
 // --- Check for Updates ---
 const checkUpdateBtn = document.getElementById('checkUpdateBtn');
 const updateResult = document.getElementById('updateResult');
 
 checkUpdateBtn.addEventListener('click', async () => {
-    updateResult.textContent = '正在检查...';
+    updateResult.textContent = 'Checking...';
     updateResult.style.color = 'var(--text-dim)';
     try {
         const localManifest = chrome.runtime.getManifest();
-        const localVersion = localManifest.version;
-        const resp = await fetch('https://raw.githubusercontent.com/Femtoce11/cor3-helper/main/manifest.json', { cache: 'no-store' });
-        if (!resp.ok) throw new Error('获取远程 manifest 失败');
-        const remoteManifest = await resp.json();
-        const remoteVersion = remoteManifest.version;
+        const localExtVersion = localManifest.version;
 
-        if (remoteVersion !== localVersion) {
-            updateResult.innerHTML = `发现新版本！ <b>v${localVersion}</b> → <b>v${remoteVersion}</b><br><a href="https://github.com/Femtoce11/cor3-helper" target="_blank" style="color:var(--accent-cyan);">从 GitHub 下载</a><br><span style="font-size:9px;color:var(--text-muted);">下载 ZIP、解压后在 chrome://extensions 重新加载</span>`;
+        // Fetch remote versions.json for all version comparisons
+        const resp = await fetch('https://raw.githubusercontent.com/Femtoce11/cor3-helper/main/versions.json', { cache: 'no-store' });
+        if (!resp.ok) throw new Error('Failed to fetch remote versions');
+        const remote = await resp.json();
+
+        const { webVersion, systemVersion } = await chrome.storage.local.get(['webVersion', 'systemVersion']);
+
+        let messages = [];
+        // Compare extension version
+        if (remote.extension && remote.extension !== localExtVersion) {
+            messages.push(`Extension: <b>v${localExtVersion}</b> → <b>v${remote.extension}</b>`);
+        }
+        // Compare web version
+        const localWeb = webVersion ? String(webVersion).replace(/^v/, '') : null;
+        const remoteWeb = remote.web ? String(remote.web).replace(/^v/, '') : null;
+        if (remoteWeb && localWeb && remoteWeb !== localWeb) {
+            messages.push(`Web: <b>${webVersion}</b> → <b>v${remoteWeb}</b>`);
+        }
+        // Compare system version
+        const localSys = systemVersion ? String(systemVersion).trim() : null;
+        const remoteSys = remote.system ? String(remote.system).trim() : null;
+        if (remoteSys && localSys && remoteSys !== localSys) {
+            messages.push(`System: <b>${localSys}</b> → <b>${remoteSys}</b>`);
+        }
+
+        if (messages.length > 0) {
+            updateResult.innerHTML = `Updates detected:<br>${messages.join('<br>')}<br><a href="https://github.com/Femtoce11/cor3-helper" target="_blank" style="color:var(--accent-cyan);">Download from GitHub</a><br><span style="font-size:9px;color:var(--text-muted);">Download ZIP, extract, and reload on chrome://extensions</span>`;
             updateResult.style.color = 'var(--accent-orange)';
         } else {
-            updateResult.textContent = `已是最新版本！ (v${localVersion})`;
+            updateResult.textContent = `You're up to date! (ext v${localExtVersion}${localWeb ? ', web v' + localWeb : ''}${localSys ? ', sys ' + localSys : ''})`;
             updateResult.style.color = 'var(--accent-green)';
         }
     } catch (e) {
-        updateResult.textContent = '无法检查更新，请检查网络连接。';
+        console.error('[COR3 Helper] Check for updates error:', e);
+        updateResult.textContent = 'Could not check for updates. Check your connection.';
         updateResult.style.color = 'var(--accent-red)';
     }
 });

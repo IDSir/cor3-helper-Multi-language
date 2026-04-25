@@ -1,6 +1,7 @@
-﻿// content-early.js
-// Runs in MAIN world at document_start 鈥?before the page creates any WebSocket.
+// content-early.js
+// Runs in MAIN world at document_start — before the page creates any WebSocket.
 // Hooks WebSocket to intercept cor3/corie messages and relays decisions via postMessage.
+var webVersion = null;
 
 (function () {
     if (window.__cor3WsInterceptorActive) return;
@@ -8,16 +9,51 @@
 
     const OrigWebSocket = window.WebSocket;
     const trackedSockets = [];
+    let activeSocket = null; // The socket that's currently receiving messages
+    const socketLastActivity = new Map(); // Track last message time per socket
 
     // --- Intercept Bearer token from outgoing fetch/XHR requests ---
     let capturedBearerToken = null;
+
+    // --- Token-expired handling ---
+    let pendingRetryOps = []; // operations to retry when new socket opens
+    let tokenExpiredFlag = false;
+
+    function queueRetryOp(opName) {
+        if (!pendingRetryOps.includes(opName)) {
+            pendingRetryOps.push(opName);
+        }
+    }
+
+    function runPendingRetries() {
+        if (pendingRetryOps.length === 0) return;
+        console.log('[COR3 Helper] Retrying pending operations:', pendingRetryOps.join(', '));
+        var ops = pendingRetryOps.slice();
+        pendingRetryOps = [];
+        tokenExpiredFlag = false;
+        ops.forEach(function (op) {
+            setTimeout(function () {
+                if (op === 'expeditions') window.__cor3RequestExpeditions();
+                else if (op === 'market') window.__cor3RequestMarket();
+                else if (op === 'darkMarket') window.__cor3RequestDarkMarket();
+                else if (op === 'stash') window.__cor3RequestStash();
+                else if (op === 'dailyOps') window.postMessage({ type: 'COR3_FETCH_DAILY_OPS' }, '*');
+                else if (op.startsWith('decision:')) {
+                    var payload = op.substring(9);
+                    try {
+                        var data = JSON.parse(payload);
+                        window.__cor3RespondDecision(data.expeditionId, data.messageId, data.selectedOption);
+                    } catch (e) { /* silent */ }
+                }
+            }, humanDelay());
+        });
+    }
 
     const OrigFetch = window.fetch;
     window.fetch = function () {
         const args = arguments;
         const input = args[0];
         const init = args[1];
-        // Check for Authorization header in fetch calls to corie/cor3
         try {
             const url = typeof input === 'string' ? input : (input && input.url ? input.url : '');
             if (url.includes('cor3') || url.includes('corie')) {
@@ -36,8 +72,54 @@
                     }
                 }
             }
+            // Intercept translation.json for webVersion
+            if (url.includes('translation.json')) { // url = /locales/tr/translation.json?v=v1.17.21
+                try {
+                    const parsedUrl = new URL(url, window.location.origin);
+                    if (!webVersion) {
+                        webVersion = parsedUrl.searchParams.get('v');
+                    }
+                    console.log('[COR3 Helper] Captured web version from translation.json:', webVersion);
+                } catch (e) {
+                    console.log('[COR3 Helper] Error parsing version:', e);
+                }
+            }
         } catch (e) { /* silent */ }
-        return OrigFetch.apply(this, args);
+
+        // Intercept users/me response for systemVersion
+        var result = OrigFetch.apply(this, args);
+        try {
+            var fetchUrl = typeof input === 'string' ? input : (input && input.url ? input.url : '');
+            if (fetchUrl.includes('api/users/me')) {
+                result.then(function (resp) {
+                    if (resp && resp.ok) {
+                        resp.clone().json().then(function (data) {
+                            if (data && data.systemVersion !== undefined) {
+                                console.log('[COR3 Helper] Captured system version from api/users/me:', data.systemVersion);
+                                window.postMessage({ type: 'COR3_SYSTEM_VERSION', version: data.systemVersion }, '*');
+                                if (webVersion) {
+                                    window.postMessage({ type: 'COR3_WEB_VERSION', version: webVersion }, '*');
+                                }
+                            }
+                        }).catch(function () {});
+                    }
+                }).catch(function () {});
+            }
+            // Intercept daily-claim/rewards response
+            if (fetchUrl.includes('api/user-daily-claim/rewards')) {
+                result.then(function (resp) {
+                    if (resp && resp.ok) {
+                        resp.clone().json().then(function (data) {
+                            if (Array.isArray(data)) {
+                                window.postMessage({ type: 'COR3_DAILY_REWARDS', rewards: data }, '*');
+                            }
+                        }).catch(function () {});
+                    }
+                }).catch(function () {});
+            }
+        } catch (e) { /* silent */ }
+
+        return result;
     };
 
     const OrigXHROpen = XMLHttpRequest.prototype.open;
@@ -63,12 +145,19 @@
             const url = args[0] || '';
 
             if (url.includes('cor3') || url.includes('corie')) {
-                console.log('[COR3 Helper] 正在跟踪 WebSocket：', url);
+                console.log('[COR3 Helper] Tracking WebSocket:', url);
+                ws.__cor3Url = url;
                 trackedSockets.push(ws);
 
                 ws.addEventListener('message', function (event) {
                     try {
-                        handleWsMessage(event.data);
+                        // Mark this socket as active and update last activity time
+                        if (activeSocket !== ws) {
+                            console.log('[COR3 Helper] Active socket changed to:', ws.__cor3Url);
+                            activeSocket = ws;
+                        }
+                        socketLastActivity.set(ws, Date.now());
+                        handleWsMessage(event.data, ws);
                     } catch (e) {
                         // silent
                     }
@@ -76,17 +165,24 @@
 
                 // Auto-fetch all data when WS connects (page load/reload)
                 ws.addEventListener('open', function () {
-                    console.log('[COR3 Helper] WS 已连接 鈥?安排初始数据抓取');
+                    console.log('[COR3 Helper] WS connected — scheduling initial data fetch');
                     // Wait for connection to stabilize, then fetch all data
                     setTimeout(function () {
+                        // If this is a reconnect after token-expired, retry pending ops
+                        if (tokenExpiredFlag || pendingRetryOps.length > 0) {
+                            setTimeout(function () { runPendingRetries(); }, 2000);
+                        }
                         window.__cor3InitialFetch && window.__cor3InitialFetch();
                     }, 3000);
                 });
 
                 // Clean up closed sockets
                 ws.addEventListener('close', function () {
+                    console.log('[COR3 Helper] WS closed');
                     const idx = trackedSockets.indexOf(ws);
                     if (idx !== -1) trackedSockets.splice(idx, 1);
+                    socketLastActivity.delete(ws);
+                    if (activeSocket === ws) activeSocket = null;
                 });
             }
 
@@ -106,7 +202,7 @@
 
     window.WebSocket = WebSocketProxy;
 
-    function handleWsMessage(rawData) {
+    function handleWsMessage(rawData, socket) {
         if (typeof rawData !== 'string') return;
 
         // Socket.IO v4 messages start with "42[" for event frames
@@ -125,6 +221,33 @@
         const eventName = parsed[0];
         const payload = parsed[1];
 
+        // Handle token-expired error — close sockets to force game to reconnect with fresh token
+        if (eventName === 'error' && payload && payload.message === 'token-expired') {
+            console.log('[COR3 Helper] Token expired detected — closing sockets to force reconnect');
+            tokenExpiredFlag = true;
+            // Queue all data fetches for retry after reconnect
+            queueRetryOp('expeditions');
+            queueRetryOp('market');
+            queueRetryOp('darkMarket');
+            queueRetryOp('stash');
+            queueRetryOp('dailyOps');
+            window.postMessage({ type: 'COR3_TOKEN_EXPIRED' }, '*');
+            // Close all tracked sockets — Socket.IO will auto-reconnect with a new token
+            var socketsToClose = trackedSockets.slice();
+            for (var i = 0; i < socketsToClose.length; i++) {
+                try { socketsToClose[i].close(); } catch (e) {}
+            }
+            // Safety: if no new socket within 15s, log warning
+            setTimeout(function () {
+                if (trackedSockets.length === 0) {
+                    console.warn('[COR3 Helper] No new WebSocket connected after token-expired close — game may need page refresh');
+                } else {
+                    console.log('[COR3 Helper] WebSocket reconnected after token-expired');
+                }
+            }, 15000);
+            return;
+        }
+
         // Intercept stash (inventory) responses
         if (eventName === 'stash' && payload && payload.data) {
             window.postMessage({
@@ -133,10 +256,103 @@
             }, '*');
         }
 
-        // Intercept market responses 鈥?only relay actual market data (not "connected" acks)
+        // Intercept mercenary responses
+        if (eventName === 'expeditions' && payload && payload.event && payload.event.action === 'get.mercenaries') {
+            // Cache mercenary IDs for configure calls
+            if (payload.data && payload.data.mercenaries) {
+                window.__cor3CachedMercIds = payload.data.mercenaries.map(function (m) { return m.id; });
+            }
+            window.postMessage({
+                type: 'COR3_WS_MERCENARIES',
+                data: payload.data
+            }, '*');
+            // Auto-request expedition config if not already cached
+            if (!window.__cor3ExpConfigIds) {
+                setTimeout(function () {
+                    window.__cor3RequestExpeditionConfig();
+                }, 500);
+            } else if (window.__cor3CachedMercIds) {
+                // Config already available, configure each merc
+                var ids = window.__cor3ExpConfigIds;
+                window.__cor3CachedMercIds.forEach(function (mercId, idx) {
+                    setTimeout(function () {
+                        window.__cor3RequestMercConfigure(mercId, null, ids.locationConfigId, ids.zoneConfigId, ids.objectiveId);
+                    }, (idx + 1) * 800);
+                });
+            }
+            return;
+        }
+
+        // Intercept expedition config response (locations/zones/objectives)
+        if (eventName === 'expeditions' && payload && payload.event && payload.event.action === 'get.config') {
+            // Store config IDs for mercenary configure calls
+            if (payload.data && payload.data.locations && payload.data.locations.length > 0) {
+                var loc = payload.data.locations[0];
+                window.__cor3ExpConfigIds = {
+                    locationConfigId: loc.id,
+                    zoneConfigId: loc.zones && loc.zones[0] ? loc.zones[0].id : null,
+                    objectiveId: loc.zones && loc.zones[0] && loc.zones[0].objectives && loc.zones[0].objectives[0] ? loc.zones[0].objectives[0].id : null
+                };
+            }
+            window.postMessage({
+                type: 'COR3_WS_EXPEDITION_CONFIG',
+                data: payload.data
+            }, '*');
+            // If mercenaries are cached, auto-configure each
+            if (window.__cor3CachedMercIds && window.__cor3ExpConfigIds) {
+                var ids = window.__cor3ExpConfigIds;
+                window.__cor3CachedMercIds.forEach(function (mercId, idx) {
+                    setTimeout(function () {
+                        window.__cor3RequestMercConfigure(mercId, null, ids.locationConfigId, ids.zoneConfigId, ids.objectiveId);
+                    }, (idx + 1) * 800);
+                });
+            }
+            return;
+        }
+
+        // Intercept open.container response
+        if (eventName === 'expeditions' && payload && payload.event && payload.event.action === 'open.container') {
+            window.postMessage({
+                type: 'COR3_WS_CONTAINER_OPENED',
+                data: payload.data
+            }, '*');
+            return;
+        }
+
+        // Intercept collect.all response
+        if (eventName === 'expeditions' && payload && payload.event && payload.event.action === 'collect.all') {
+            window.postMessage({
+                type: 'COR3_WS_COLLECTED_ALL',
+                data: payload.data
+            }, '*');
+            return;
+        }
+
+        // Intercept launch response
+        if (eventName === 'expeditions' && payload && payload.event && payload.event.action === 'launch') {
+            window.postMessage({
+                type: 'COR3_WS_EXPEDITION_LAUNCHED',
+                data: payload.data
+            }, '*');
+            return;
+        }
+
+        // Intercept mercenary configure response (cost/risk/chances)
+        if (eventName === 'expeditions' && payload && payload.event && payload.event.action === 'configure') {
+            var mercId = (window.__cor3PendingMercConfigures && window.__cor3PendingMercConfigures.length > 0)
+                ? window.__cor3PendingMercConfigures.shift() : null;
+            window.postMessage({
+                type: 'COR3_WS_MERC_CONFIGURE',
+                mercenaryId: mercId,
+                data: payload.data
+            }, '*');
+            return;
+        }
+
+        // Intercept market responses — only relay actual market data (not "connected" acks)
         if (eventName === 'market' && payload && payload.data) {
             var mkt = payload.data.market;
-            // Skip connection acknowledgments (action: "connected") 鈥?they don't contain real market data
+            // Skip connection acknowledgments (action: "connected") — they don't contain real market data
             if (mkt && mkt.marketName) {
                 if (mkt.id === '019d3ea4-85bd-7389-904d-908ba9194aa0') {
                     window.postMessage({
@@ -148,24 +364,48 @@
                         type: 'COR3_WS_MARKET',
                         market: payload.data
                     }, '*');
+                    // Store HOME market ID and auto-fetch mercenaries after market-1 data arrives
+                    window.__cor3LastMarketId = mkt.id;
+                    setTimeout(function () {
+                        window.__cor3RequestMercenaries(mkt.id);
+                    }, 2000);
                 }
             }
         }
 
         // Intercept network-map responses (endpoint set success/failure)
+        // detect no-path-to-server error for dark market
         if (eventName === 'network-map' && payload && payload.event) {
             if (payload.event.action === 'set.endpoint') {
-                var success = !(payload.data && payload.data.error);
-                window.postMessage({
-                    type: 'COR3_WS_ENDPOINT_RESULT',
-                    success: success,
-                    data: payload.data
-                }, '*');
+                if (payload.error && payload.error.message === 'no-path-to-server') {
+                    console.log('[COR3 Helper] D4RK market unreachable: no-path-to-server');
+                    window.postMessage({
+                        type: 'COR3_WS_DARK_MARKET_UNREACHABLE',
+                        error: payload.error.message,
+                        serverId: payload.error.serverId
+                    }, '*');
+                } else {
+                    var success = !payload.error;
+                    window.postMessage({
+                        type: 'COR3_WS_ENDPOINT_RESULT',
+                        success: success,
+                        data: payload.data
+                    }, '*');
+                }
             }
         }
 
         // We're interested in "expeditions" responses that contain expedition data
         if (eventName === 'expeditions' && payload && payload.data) {
+            // Handle archived expeditions response
+            if (payload.event && payload.event.action === 'get.archived') {
+                window.postMessage({
+                    type: 'COR3_WS_ARCHIVED_EXPEDITIONS',
+                    data: payload.data
+                }, '*');
+                return;
+            }
+
             const expeditions = Array.isArray(payload.data) ? payload.data : [payload.data];
 
             // Relay full expedition data for expedition info display
@@ -185,15 +425,17 @@
                             expeditionId: expedition.id,
                             mercenaryCallsign: expedition.mercenary
                                 ? expedition.mercenary.callsign
-                                : '未知',
+                                : 'Unknown',
                             locationName: expedition.locationName || '',
                             zoneName: expedition.zoneName || '',
+                            riskScore: expedition.riskScore || 0,
                             messageId: msg.id,
                             content: msg.content,
                             decisionOptions: msg.decisionOptions,
                             selectedOption: msg.selectedOption,
                             decisionDeadline: msg.decisionDeadline,
                             isResolved: msg.isResolved,
+                            isAutoResolved: msg.isAutoResolved || false,
                             createdAt: msg.createdAt
                         });
                     }
@@ -213,8 +455,9 @@
     // Joining the expedition room triggers the server to respond with get.active data.
     // We track whether data already arrived to avoid sending a duplicate get.active.
     window.__cor3RequestExpeditions = function () {
+        console.log('[COR3 Helper] Requesting expedition data');
         var gotData = false;
-        // Listen for the response 鈥?if it arrives from room join alone, skip manual send
+        // Listen for the response — if it arrives from room join alone, skip manual send
         var onExpData = function (evt) {
             if (evt.data && evt.data.type === 'COR3_WS_EXPEDITIONS') {
                 gotData = true;
@@ -224,34 +467,145 @@
         window.addEventListener('message', onExpData);
 
         enterRooms(['expeditions']).then(function () {
-            // Wait a bit 鈥?if data already arrived from room join, skip the manual send
+            // Wait a bit — if data already arrived from room join, skip the manual send
             setTimeout(function () {
                 window.removeEventListener('message', onExpData);
                 if (!gotData) {
                     var msg = '42["event",{"event":{"name":"expeditions","action":"get.active"}}]';
                     wsSend(msg);
-                    console.log('[COR3 Helper] 已发送 expeditions get.active（房间加入未自动返回数据）');
-                } else {
-                    console.log('[COR3 Helper] 远征数据已通过房间加入返回 鈥?已跳过手动 get.active');
                 }
             }, 2000);
         });
         return true;
     };
 
-    // Helper: get a random human-like delay (400鈥?00ms)
+    // Send decision response via WS
+    window.__cor3RespondDecision = function (expeditionId, messageId, selectedOption) {
+        var payload = JSON.stringify({
+            expeditionId: expeditionId,
+            messageId: messageId,
+            selectedOption: selectedOption
+        });
+        var msg = '42["event",{"event":{"name":"expeditions","action":"respond.event"},"data":' + payload + '}]';
+        console.log('[COR3 Helper] Sending decision response:', selectedOption);
+        var sent = wsSend(msg);
+        if (!sent) {
+            // Queue for retry if socket is down (token-expired)
+            queueRetryOp('decision:' + payload);
+        }
+        return sent;
+    };
+
+    // Request archived expeditions
+    window.__cor3RequestArchivedExpeditions = function () {
+        console.log('[COR3 Helper] Requesting archived expeditions');
+        var msg = '42["event",{"event":{"name":"expeditions","action":"get.archived"},"data":{"cursor":null,"limit":20}}]';
+        wsSend(msg);
+        return true;
+    };
+
+    // Request mercenary data (requires marketId)
+    window.__cor3RequestMercenaries = function (marketId) {
+        var mid = marketId || window.__cor3LastMarketId || '019d3ea4-85bd-7389-904d-8f7c85841134';
+        console.log('[COR3 Helper] Requesting mercenary data for market:', mid);
+        var msg = '42["event",{"event":{"name":"expeditions","action":"get.mercenaries"},"data":{"marketId":"' + mid + '"}}]';
+        wsSend(msg);
+        return true;
+    };
+
+    // Request expedition config (returns location/zone/objective IDs)
+    window.__cor3RequestExpeditionConfig = function () {
+        console.log('[COR3 Helper] Requesting expedition config');
+        var msg = '42["event",{"event":{"name":"expeditions","action":"get.config"}}]';
+        wsSend(msg);
+        return true;
+    };
+
+    // Track pending mercenary configure requests (queue of mercenaryIds)
+    window.__cor3PendingMercConfigures = [];
+
+    // Request mercenary configure details (cost, risk, chances)
+    window.__cor3RequestMercConfigure = function (mercenaryId, marketId, locationConfigId, zoneConfigId, objectiveId) {
+        var mid = marketId || window.__cor3LastMarketId || '019d3ea4-85bd-7389-904d-8f7c85841134';
+        console.log('[COR3 Helper] Requesting configure for mercenary:', mercenaryId);
+        window.__cor3PendingMercConfigures.push(mercenaryId);
+        var data = {
+            mercenaryId: mercenaryId,
+            marketId: mid,
+            locationConfigId: locationConfigId,
+            zoneConfigId: zoneConfigId,
+            objectiveId: objectiveId,
+            hasInsurance: false
+        };
+        var msg = '42["event",{"event":{"name":"expeditions","action":"configure"},"data":' + JSON.stringify(data) + '}]';
+        wsSend(msg);
+        return true;
+    };
+
+    // Configure and launch expedition with mercenary
+    window.__cor3LaunchExpedition = function (configData) {
+        console.log('[COR3 Helper] Launching expedition with config:', configData);
+        var configureMsg = '42["event",{"event":{"name":"expeditions","action":"configure"},"data":' + JSON.stringify(configData) + '}]';
+        wsSend(configureMsg);
+        // After configure, launch after a delay (launch needs same data as configure)
+        setTimeout(function () {
+            var launchMsg = '42["event",{"event":{"name":"expeditions","action":"launch"},"data":' + JSON.stringify(configData) + '}]';
+            wsSend(launchMsg);
+            console.log('[COR3 Helper] Expedition launch sent');
+        }, humanDelay() + 500);
+        return true;
+    };
+
+    // Open reward container for a completed expedition
+    window.__cor3OpenContainer = function (expeditionId) {
+        console.log('[COR3 Helper] Opening container for expedition:', expeditionId);
+        var msg = '42["event",{"event":{"name":"expeditions","action":"open.container"},"data":{"expeditionId":"' + expeditionId + '"}}]';
+        wsSend(msg);
+        return true;
+    };
+
+    // Collect all contents from an opened container
+    window.__cor3CollectAll = function (expeditionId) {
+        console.log('[COR3 Helper] Collecting all from expedition:', expeditionId);
+        var msg = '42["event",{"event":{"name":"expeditions","action":"collect.all"},"data":{"expeditionId":"' + expeditionId + '"}}]';
+        wsSend(msg);
+        return true;
+    };
+
+    // Get a random human-like delay (400–900ms)
     function humanDelay() {
         return 400 + Math.floor(Math.random() * 500);
     }
 
-    // Helper: send a WS message on first open tracked socket
+    // Send a WS message on the active socket (most recently received messages)
     function wsSend(msg) {
+        // Prefer the activeSocket if it's still open
+        if (activeSocket && activeSocket.readyState === OrigWebSocket.OPEN) {
+            activeSocket.send(msg);
+            return true;
+        }
+
+        // Fall back to most recently active socket
+        let bestSocket = null;
+        let bestTime = 0;
         for (const ws of trackedSockets) {
             if (ws.readyState === OrigWebSocket.OPEN) {
-                ws.send(msg);
-                return true;
+                const lastActivity = socketLastActivity.get(ws) || 0;
+                if (lastActivity > bestTime) {
+                    bestTime = lastActivity;
+                    bestSocket = ws;
+                }
             }
         }
+
+        if (bestSocket) {
+            activeSocket = bestSocket; // Update active socket
+            bestSocket.send(msg);
+            return true;
+        }
+
+        // No open socket found
+        console.warn('[COR3 Helper] No active WebSocket found — message not sent');
         return false;
     }
 
@@ -265,7 +619,6 @@
     // Send a leave-room message. Only sends if tracked as joined.
     function leaveRoom(room) {
         if (!joinedRooms.has(room)) return false;
-        console.log('[COR3 Helper] 离开房间：', room);
         wsSend('42["leave-room",{"room":"' + room + '"}]');
         joinedRooms.delete(room);
         return true;
@@ -273,7 +626,6 @@
 
     // Send a join-room message and mark as joined.
     function sendJoin(room) {
-        console.log('[COR3 Helper] 加入房间：', room);
         wsSend('42["join-room",{"room":"' + room + '"}]');
         joinedRooms.add(room);
     }
@@ -303,9 +655,9 @@
         return chain;
     }
 
-    // Enter rooms properly: leave any already-joined rooms (child鈫抪arent),
-    // then join them all fresh (parent鈫抍hild).
-    // `rooms` must be in parent鈫抍hild order, e.g. ['network-map', 'market']
+    // Enter rooms properly: leave any already-joined rooms (child→parent),
+    // then join them all fresh (parent→child).
+    // `rooms` must be in parent→child order, e.g. ['network-map', 'market']
     function enterRooms(rooms) {
         // Build leave list: reverse order (child first), only rooms we're in
         var toLeave = rooms.slice().reverse().filter(function (r) { return joinedRooms.has(r); });
@@ -316,25 +668,27 @@
 
     // Send stash request: leave if in room, delay, then re-join
     window.__cor3RequestStash = function () {
+        console.log('[COR3 Helper] Requesting stash data');
         enterRooms(['stash']);
         return true;
     };
 
     // HOME Market: just send get.options (no room joins needed)
     window.__cor3RequestMarket = function () {
+        console.log('[COR3 Helper] Requesting HOME market options');
         var msg = '42["event",{"event":{"name":"market","action":"get.options"},"data":{"marketId":"019d3ea4-85bd-7389-904d-8f7c85841134"}}]';
-        console.log('[COR3 Helper] 正在请求 HOME 市场选项');
         wsSend(msg);
         return true;
     };
 
     // D4RK Market: set endpoint first (no room join), then send get.options
     window.__cor3RequestDarkMarket = function () {
+        console.log('[COR3 Helper] Setting D4RK endpoint');
         var setEndpoint = '42["event",{"event":{"name":"network-map","action":"set.endpoint"},"data":{"serverId":"019d29c5-4b37-79bf-b23e-304d8ea03c15"}}]';
         var getOptions = '42["event",{"event":{"name":"market","action":"get.options"},"data":{"marketId":"019d3ea4-85bd-7389-904d-908ba9194aa0"}}]';
-        console.log('[COR3 Helper] 正在设置 D4RK 端点（无需加入房间），随后请求选项');
         wsSend(setEndpoint);
         setTimeout(function () {
+            console.log('[COR3 Helper] Requesting D4RK market options');
             wsSend(getOptions);
         }, 1500);
         return true;
@@ -354,15 +708,19 @@
 
     // Auto-fetch all data on page load (called when WS opens)
     var initialFetchDone = false;
+    window.__cor3ResetInitialFetch = function () {
+        initialFetchDone = false;
+        console.log('[COR3 Helper] Reset initial fetch flag for reconnect');
+    };
     window.__cor3InitialFetch = function () {
         if (initialFetchDone) return;
         initialFetchDone = true;
-        console.log('[COR3 Helper] 正在执行初始数据抓取（页面加载）');
+        console.log('[COR3 Helper] Running initial data fetch (page load)');
 
         // Trigger daily ops fetch via content script
         window.postMessage({ type: 'COR3_FETCH_DAILY_OPS' }, '*');
 
-        // Fetch both markets 鈥?Market-1 is instant, Market-2 needs endpoint set first
+        // Fetch both markets — Market-1 is instant, Market-2 needs endpoint set first
         window.__cor3RequestMarket();
         setTimeout(function () {
             window.__cor3RequestDarkMarket();
@@ -372,7 +730,49 @@
         setTimeout(function () {
             window.__cor3RequestExpeditions();
         }, 2000);
+
+        // Fetch stash (inventory) at end of queue with human delay
+        setTimeout(function () {
+            window.__cor3RequestStash();
+        }, 6000);
+
+        // Fetch archived expeditions after stash
+        setTimeout(function () {
+            window.__cor3RequestArchivedExpeditions();
+        }, 8000);
+
+        // Mercenaries are now auto-fetched after market-1 data arrives (see handleWsMessage)
     };
+
+    // Auto-poll expeditions every 30 seconds to catch decisions
+    setInterval(function () {
+        if (trackedSockets.length > 0) {
+            var msg = '42["event",{"event":{"name":"expeditions","action":"get.active"}}]';
+            wsSend(msg);
+        }
+    }, 30000);
+
+    // Periodic socket health check: clean up dead sockets and detect stale connections
+    setInterval(function () {
+        const now = Date.now();
+        // Clean up CLOSED sockets that weren't properly removed
+        for (var i = trackedSockets.length - 1; i >= 0; i--) {
+            var ws = trackedSockets[i];
+            if (ws.readyState === OrigWebSocket.CLOSED || ws.readyState === OrigWebSocket.CLOSING) {
+                console.log('[COR3 Helper] Cleaning up dead socket');
+                trackedSockets.splice(i, 1);
+                socketLastActivity.delete(ws);
+                if (activeSocket === ws) activeSocket = null;
+            }
+        }
+        // Warn if activeSocket hasn't received messages in 90s
+        if (activeSocket) {
+            var lastActivity = socketLastActivity.get(activeSocket) || 0;
+            if (now - lastActivity > 90000) {
+                console.warn('[COR3 Helper] Active socket stale (no messages for 90s) — may need reconnect');
+            }
+        }
+    }, 60000);
 
     // Listen for requests from content script
     window.addEventListener('message', function (event) {
@@ -398,9 +798,36 @@
         if (event.data && event.data.type === 'COR3_LEAVE_STASH') {
             leaveRoom('stash');
         }
+        // Decision response from popup
+        if (event.data && event.data.type === 'COR3_RESPOND_DECISION') {
+            window.__cor3RespondDecision(event.data.expeditionId, event.data.messageId, event.data.selectedOption);
+        }
+        // Archived expeditions request
+        if (event.data && event.data.type === 'COR3_REQUEST_ARCHIVED_EXPEDITIONS') {
+            window.__cor3RequestArchivedExpeditions();
+        }
+        // Mercenary requests
+        if (event.data && event.data.type === 'COR3_REQUEST_MERCENARIES') {
+            window.__cor3RequestMercenaries();
+        }
+        if (event.data && event.data.type === 'COR3_REQUEST_EXPEDITION_CONFIG') {
+            window.__cor3RequestExpeditionConfig();
+        }
+        if (event.data && event.data.type === 'COR3_LAUNCH_EXPEDITION') {
+            window.__cor3LaunchExpedition(event.data.config);
+        }
+        if (event.data && event.data.type === 'COR3_OPEN_CONTAINER') {
+            window.__cor3OpenContainer(event.data.expeditionId);
+        }
+        if (event.data && event.data.type === 'COR3_COLLECT_ALL') {
+            window.__cor3CollectAll(event.data.expeditionId);
+        }
         if (event.data && event.data.type === 'COR3_STOP_DECRYPT_SOLVER') {
             window.__solverAbort = true;
-            console.log('[COR3 Helper] 已发送解密求解器停止信号。');
+        }
+        if (event.data && event.data.type === 'COR3_STOP_DAILY_HACK') {
+            window.__dailyHackAbort = true;
+            window.__dailyHackActive = false;
         }
         if (event.data && event.data.type === 'COR3_START_DECRYPT_SOLVER') {
             // If solver is already running, do nothing
@@ -408,11 +835,8 @@
             // If solver was stopped, reset flags and re-inject will handle it
             window.__solverAbort = false;
             window.__solverActive = false;
-            console.log('[COR3 Helper] 解密求解器重启信号已发出 鈥?准备重新注入。');
         }
     });
 
-    console.log('[COR3 Helper] WebSocket 拦截器已在 document_start 安装');
+    console.log('[COR3 Helper] WebSocket interceptor installed');
 })();
-
-
