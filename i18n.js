@@ -131,6 +131,147 @@
         }
     };
 
+    const STATUS_TEXT = {
+        fr: { 'Status': 'Statut', 'AVAILABLE': 'DISPONIBLE', 'IN PROGRESS': 'EN COURS', 'FAILED': 'ÉCHEC', 'COMPLETED': 'TERMINÉ', 'EXPIRED': 'EXPIRÉ' },
+        ru: { 'Status': 'Статус', 'AVAILABLE': 'ДОСТУПНО', 'IN PROGRESS': 'В ПРОЦЕССЕ', 'FAILED': 'ПРОВАЛЕНО', 'COMPLETED': 'ЗАВЕРШЕНО', 'EXPIRED': 'ИСТЕКЛО' },
+        de: { 'Status': 'Status', 'AVAILABLE': 'VERFÜGBAR', 'IN PROGRESS': 'LÄUFT', 'FAILED': 'FEHLGESCHLAGEN', 'COMPLETED': 'ABGESCHLOSSEN', 'EXPIRED': 'ABGELAUFEN' },
+        'zh-CN': { 'Status': '状态', 'AVAILABLE': '未接取', 'IN PROGRESS': '进行中', 'FAILED': '失败', 'COMPLETED': '完成', 'EXPIRED': '已过期' },
+        'zh-TW': { 'Status': '狀態', 'AVAILABLE': '未接取', 'IN PROGRESS': '進行中', 'FAILED': '失敗', 'COMPLETED': '完成', 'EXPIRED': '已過期' },
+        ja: { 'Status': '状態', 'AVAILABLE': '未受注', 'IN PROGRESS': '進行中', 'FAILED': '失敗', 'COMPLETED': '完了', 'EXPIRED': '期限切れ' },
+        pl: { 'Status': 'Status', 'AVAILABLE': 'DOSTĘPNE', 'IN PROGRESS': 'W TOKU', 'FAILED': 'NIEPOWODZENIE', 'COMPLETED': 'UKOŃCZONE', 'EXPIRED': 'WYGASŁE' },
+        uk: { 'Status': 'Статус', 'AVAILABLE': 'ДОСТУПНО', 'IN PROGRESS': 'ТРИВАЄ', 'FAILED': 'НЕВДАЛО', 'COMPLETED': 'ЗАВЕРШЕНО', 'EXPIRED': 'МИНУЛО' },
+        tr: { 'Status': 'Durum', 'AVAILABLE': 'UYGUN', 'IN PROGRESS': 'SÜRÜYOR', 'FAILED': 'BAŞARISIZ', 'COMPLETED': 'TAMAMLANDI', 'EXPIRED': 'SÜRESİ DOLDU' }
+    };
+
+    const EXTRA_TEXT = {
+        fr: {
+            'Automation/QoL Toggles': 'Automatisation / options QoL',
+            'Disable System Message': 'Désactiver les messages système',
+            'Disable Desktop Glitch/Wave': 'Désactiver Glitch/Wave du bureau',
+            'Disable Network Fog': 'Désactiver le brouillard réseau',
+            'You are lagging behind in progress!': 'Vous êtes en retard dans la progression !',
+            'System messages re-enabled. Page restart may be required.': 'Messages système réactivés. Un redémarrage de la page peut être requis.',
+            'System messages re-enabled. Page restart required to apply changes.': 'Messages système réactivés. Redémarrage de la page requis pour appliquer les changements.',
+            "You're up to date!": 'Vous êtes à jour !'
+        },
+        ru: {
+            'Automation/QoL Toggles': 'Автоматизация / QoL-переключатели',
+            'Disable System Message': 'Отключить системные сообщения',
+            'Disable Desktop Glitch/Wave': 'Отключить десктопный Glitch/Wave',
+            'Disable Network Fog': 'Отключить сетевой туман',
+            'You are lagging behind in progress!': 'Вы отстаете в прогрессе!',
+            'System messages re-enabled. Page restart may be required.': 'Системные сообщения снова включены. Может потребоваться перезапуск страницы.',
+            'System messages re-enabled. Page restart required to apply changes.': 'Системные сообщения снова включены. Для применения изменений нужен перезапуск страницы.',
+            "You're up to date!": 'У вас актуальная версия!'
+        },
+        de: {
+            'Automation/QoL Toggles': 'Automatisierung / QoL-Schalter',
+            'Disable System Message': 'Systemnachrichten deaktivieren',
+            'Disable Desktop Glitch/Wave': 'Desktop-Glitch/Wave deaktivieren',
+            'Disable Network Fog': 'Netznebel deaktivieren',
+            'You are lagging behind in progress!': 'Du liegst beim Fortschritt zurück!',
+            'System messages re-enabled. Page restart may be required.': 'Systemnachrichten wieder aktiviert. Ein Seitenneustart könnte nötig sein.',
+            'System messages re-enabled. Page restart required to apply changes.': 'Systemnachrichten wieder aktiviert. Seitenneustart zum Anwenden erforderlich.',
+            "You're up to date!": 'Du bist auf dem neuesten Stand!'
+        },
+        'zh-CN': {
+            'Automation/QoL Toggles': '自动化 / 体验开关',
+            'Disable System Message': '屏蔽系统消息',
+            'Disable Desktop Glitch/Wave': '禁用桌面故障波纹',
+            'Disable Network Fog': '禁用网络迷雾',
+            'You are lagging behind in progress!': '你的进度已落后！',
+            'System messages re-enabled. Page restart may be required.': '系统消息已重新启用，可能需要重启页面。',
+            'System messages re-enabled. Page restart required to apply changes.': '系统消息已重新启用，需要重启页面才能生效。',
+            "You're up to date!": '已是最新！'
+        },
+        'zh-TW': {
+            'Automation/QoL Toggles': '自動化 / 體驗開關',
+            'Disable System Message': '停用系統訊息',
+            'Disable Desktop Glitch/Wave': '停用桌面 Glitch/Wave',
+            'Disable Network Fog': '停用網路迷霧',
+            'You are lagging behind in progress!': '你的進度已落後！',
+            'System messages re-enabled. Page restart may be required.': '系統訊息已重新啟用，可能需要重新啟動頁面。',
+            'System messages re-enabled. Page restart required to apply changes.': '系統訊息已重新啟用，需要重新啟動頁面才能套用變更。',
+            "You're up to date!": '已是最新！'
+        },
+        ja: {
+            'Automation/QoL Toggles': '自動化 / QoL トグル',
+            'Disable System Message': 'システムメッセージを無効化',
+            'Disable Desktop Glitch/Wave': 'デスクトップのグリッチ/ウェーブを無効化',
+            'Disable Network Fog': 'ネットワークフォグを無効化',
+            'You are lagging behind in progress!': '進行状況が遅れています！',
+            'System messages re-enabled. Page restart may be required.': 'システムメッセージを再有効化しました。ページ再起動が必要な場合があります。',
+            'System messages re-enabled. Page restart required to apply changes.': 'システムメッセージを再有効化しました。適用にはページ再起動が必要です。',
+            "You're up to date!": '最新です！'
+        },
+        pl: {
+            'Automation/QoL Toggles': 'Automatyzacja / przełączniki QoL',
+            'Disable System Message': 'Wyłącz wiadomości systemowe',
+            'Disable Desktop Glitch/Wave': 'Wyłącz desktopowy Glitch/Wave',
+            'Disable Network Fog': 'Wyłącz mgłę sieciową',
+            'You are lagging behind in progress!': 'Masz opóźnienie w postępie!',
+            'System messages re-enabled. Page restart may be required.': 'Wiadomości systemowe ponownie włączone. Może być wymagany restart strony.',
+            'System messages re-enabled. Page restart required to apply changes.': 'Wiadomości systemowe ponownie włączone. Aby zastosować zmiany, wymagany jest restart strony.',
+            "You're up to date!": 'Masz aktualną wersję!'
+        },
+        uk: {
+            'Automation/QoL Toggles': 'Автоматизація / QoL-перемикачі',
+            'Disable System Message': 'Вимкнути системні повідомлення',
+            'Disable Desktop Glitch/Wave': 'Вимкнути desktop Glitch/Wave',
+            'Disable Network Fog': 'Вимкнути мережевий туман',
+            'You are lagging behind in progress!': 'Ви відстаєте у прогресі!',
+            'System messages re-enabled. Page restart may be required.': 'Системні повідомлення знову увімкнено. Може знадобитися перезапуск сторінки.',
+            'System messages re-enabled. Page restart required to apply changes.': 'Системні повідомлення знову увімкнено. Для застосування змін потрібен перезапуск сторінки.',
+            "You're up to date!": 'У вас актуальна версія!'
+        },
+        tr: {
+            'Automation/QoL Toggles': 'Otomasyon / QoL anahtarları',
+            'Disable System Message': 'Sistem mesajlarını kapat',
+            'Disable Desktop Glitch/Wave': 'Masaüstü Glitch/Wave efektini kapat',
+            'Disable Network Fog': 'Ağ sisini kapat',
+            'You are lagging behind in progress!': 'İlerlemede geride kaldın!',
+            'System messages re-enabled. Page restart may be required.': 'Sistem mesajları yeniden etkinleştirildi. Sayfanın yeniden başlatılması gerekebilir.',
+            'System messages re-enabled. Page restart required to apply changes.': 'Sistem mesajları yeniden etkinleştirildi. Değişiklikleri uygulamak için sayfayı yeniden başlatmak gerekir.',
+            "You're up to date!": 'Güncelsiniz!'
+        }
+    };
+
+    const OLD_VERSION_PREFIX = {
+        fr: 'Ancienne version -> ',
+        ru: 'Старая версия -> ',
+        de: 'Alte Version -> ',
+        'zh-CN': '旧版本 -> ',
+        'zh-TW': '舊版本 -> ',
+        ja: '旧バージョン -> ',
+        pl: 'Stara wersja -> ',
+        uk: 'Стара версія -> ',
+        tr: 'Eski sürüm -> '
+    };
+
+    const AIM_FOR_PREFIX = {
+        fr: 'Visez la version système ',
+        ru: 'Ориентируйтесь на системную версию ',
+        de: 'Ziele auf Systemversion ',
+        'zh-CN': '目标系统版本 ',
+        'zh-TW': '目標系統版本 ',
+        ja: '目標システムバージョン ',
+        pl: 'Celuj w wersję systemu ',
+        uk: 'Орієнтуйтеся на системну версію ',
+        tr: 'Hedef sistem sürümü '
+    };
+
+    const AIM_FOR_SUFFIX = {
+        fr: ' !',
+        ru: '!',
+        de: '!',
+        'zh-CN': '！',
+        'zh-TW': '！',
+        ja: '！',
+        pl: '!',
+        uk: '!',
+        tr: '!'
+    };
+
     const TEXT = {
         fr: {
             'Default': 'Par défaut', 'Pinned Timers': 'Minuteurs épinglés', 'Auto Decrypt Hacking': 'Décryptage auto', 'Auto Daily Hacking': 'Hack quotidien auto',
@@ -495,6 +636,8 @@
 
     function trExact(text, lang) {
         if (lang === 'en') return text;
+        if (STATUS_TEXT[lang] && STATUS_TEXT[lang][text]) return STATUS_TEXT[lang][text];
+        if (EXTRA_TEXT[lang] && EXTRA_TEXT[lang][text]) return EXTRA_TEXT[lang][text];
         return (TEXT[lang] && TEXT[lang][text]) || text;
     }
 
@@ -529,6 +672,8 @@
         if ((m = text.match(/^Web: (.+)$/))) return w(lang, 'web')(m[1]);
         if ((m = text.match(/^System: (.+)$/))) return w(lang, 'system')(m[1]);
         if ((m = text.match(/^You're up to date! \((.+)\)$/))) return w(lang, 'upToDate')(m[1]);
+        if ((m = text.match(/^Old version -> (.+)$/))) return (OLD_VERSION_PREFIX[lang] || 'Old version -> ') + m[1];
+        if ((m = text.match(/^Aim for (.+) system version!$/))) return (AIM_FOR_PREFIX[lang] || 'Aim for ') + m[1] + (AIM_FOR_SUFFIX[lang] || ' system version!');
         return null;
     }
 
